@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pownce Pins | Terms of Service</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav shell">
+        <a class="brand" href="index.html">POWNCE PINS</a>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="shop.html">Shop</a>
+          <a href="collection.html">Collection</a>
+          <a href="creator-portal.html">Creator Portal</a>
+          <a href="quote.html">Bulk Quote</a>
+          <a href="faq.html">FAQ</a>
+          <a href="collaborate.html">Collaborate</a>
+          <a href="contact-us.html">Contact</a>
+        </div>
+        <button id="cartToggle" class="cart-btn">Cart <span id="cartCount">0</span></button>
+      </nav>
+    </header>
+
+    <main class="page shell">
+      <section class="section">
+        <h2>Pownce Pins Terms of Service</h2>
+        <p class="lead">Updated March 2, 2026</p>
+      </section>
+      <section class="legal section">
+        <section>
+          <h3>1. Privacy Policy</h3>
+          <p>
+            We collect checkout and account data needed to fulfill orders and provide support. Payment details
+            are processed by third-party providers and are not stored by us.
+          </p>
+        </section>
+        <section>
+          <h3>2. Payments</h3>
+          <p>
+            Project invoices are due within 24 hours unless otherwise specified. Unpaid custom slots may be
+            released back to the queue.
+          </p>
+        </section>
+        <section>
+          <h3>3. Turnaround</h3>
+          <p>
+            Most custom runs complete within 4-6 months based on complexity, sample revisions, and factory
+            timelines.
+          </p>
+        </section>
+        <section>
+          <h3>4. Edit Policy</h3>
+          <p>
+            Base project pricing includes one concept and limited revisions. Additional revisions may incur
+            design fees.
+          </p>
+        </section>
+        <section>
+          <h3>5. Cancellation & Refunds</h3>
+          <p>
+            Shop orders can be canceled before shipment. Custom project cancellations follow milestone-based
+            refund terms stated in your invoice.
+          </p>
+        </section>
+        <section>
+          <h3>6. Shipping</h3>
+          <p>
+            Standard orders usually ship within 2-5 business days. For lost or damaged packages, contact us
+            for claim and replacement support.
+          </p>
+        </section>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="inner shell">
+        <span>© 2026 Pownce Pins</span>
+        <div class="footer-links">
+          <a href="tos.html">Terms and Privacy</a>
+          <a href="faq.html">FAQ</a>
+          <a href="contact-us.html">Contact Us</a>
+        </div>
+      </div>
+    </footer>
+
+    <aside id="cartDrawer" class="cart-drawer" aria-hidden="true">
+      <div class="cart-header">
+        <h3>Your Cart</h3>
+        <button id="closeCart" class="small-btn">Close</button>
+      </div>
+      <div id="cartItems" class="cart-items"></div>
+      <div class="cart-footer">
+        <div class="total-row"><span>Subtotal</span><strong id="cartTotal">$0.00</strong></div>
+        <button class="btn btn-primary full">Checkout</button>
+      </div>
+    </aside>
+    <div id="backdrop" class="backdrop" hidden></div>
+    <script src="script.js"></script>
+  </body>
+</html>

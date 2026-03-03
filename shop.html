@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pownce Pins | Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav shell">
+        <a class="brand" href="index.html">POWNCE PINS</a>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a class="active" href="shop.html">Shop</a>
+          <a href="collection.html">Collection</a>
+          <a href="creator-portal.html">Creator Portal</a>
+          <a href="quote.html">Bulk Quote</a>
+          <a href="faq.html">FAQ</a>
+          <a href="collaborate.html">Collaborate</a>
+          <a href="contact-us.html">Contact</a>
+        </div>
+        <button id="cartToggle" class="cart-btn">Cart <span id="cartCount">0</span></button>
+      </nav>
+    </header>
+
+    <main class="page shell">
+      <section class="section">
+        <div class="section-top">
+          <div>
+            <h2>Shop Collections</h2>
+            <p class="lead">Event Exclusives, Make Your Own Pins, Character Pins, Pride Pins, and more.</p>
+          </div>
+        </div>
+        <div class="controls">
+          <input id="searchInput" type="search" placeholder="Search products..." />
+          <div id="filters" class="filters"></div>
+        </div>
+      </section>
+      <section class="section">
+        <div id="shopGrid" class="grid"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="inner shell">
+        <span>© 2026 Pownce Pins</span>
+        <div class="footer-links">
+          <a href="tos.html">Terms and Privacy</a>
+          <a href="faq.html">FAQ</a>
+          <a href="contact-us.html">Contact Us</a>
+        </div>
+      </div>
+    </footer>
+
+    <aside id="cartDrawer" class="cart-drawer" aria-hidden="true">
+      <div class="cart-header">
+        <h3>Your Cart</h3>
+        <button id="closeCart" class="small-btn">Close</button>
+      </div>
+      <div id="cartItems" class="cart-items"></div>
+      <div class="cart-footer">
+        <div class="total-row"><span>Subtotal</span><strong id="cartTotal">$0.00</strong></div>
+        <button class="btn btn-primary full">Checkout</button>
+      </div>
+    </aside>
+    <div id="backdrop" class="backdrop" hidden></div>
+    <script src="script.js"></script>
+  </body>
+</html>

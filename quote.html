@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pownce Pins | Bulk Quote</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav shell">
+        <a class="brand" href="index.html" aria-label="Pownce Pins home">
+          <img class="nav-logo" src="assets/pins/pounceIcoOrange.png" alt="Pownce logo" />
+        </a>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="shop.html">Shop</a>
+          <a href="collection.html">Collection</a>
+          <a href="creator-portal.html">Creator Portal</a>
+          <a class="active" href="quote.html">Bulk Quote</a>
+          <a href="faq.html">FAQ</a>
+          <a href="collaborate.html">Collaborate</a>
+          <a href="contact-us.html">Contact</a>
+        </div>
+        <button id="cartToggle" class="cart-btn">Cart <span id="cartCount">0</span></button>
+      </nav>
+    </header>
+
+    <main class="page shell">
+      <section class="section panel">
+        <h2>Bulk Commission Quote</h2>
+        <p class="lead">Get a quick estimate for custom enamel pin production.</p>
+      </section>
+
+      <section class="section split quote-layout">
+        <form id="quoteForm" class="panel">
+          <h3>Project Details</h3>
+          <label>
+            Name
+            <input type="text" name="name" required />
+          </label>
+          <label>
+            Email
+            <input type="email" name="email" required />
+          </label>
+          <label>
+            Quantity
+            <input id="quoteQty" type="number" name="quantity" min="50" step="25" value="100" required />
+          </label>
+          <label>
+            Pin Style
+            <select id="quoteStyle" name="style" class="portal-select">
+              <option value="soft-enamel">Soft Enamel</option>
+              <option value="hard-enamel">Hard Enamel</option>
+              <option value="glitter">Glitter Fill</option>
+              <option value="screen-print">Screen Print Detail</option>
+            </select>
+          </label>
+          <label>
+            Notes
+            <textarea name="notes" placeholder="Share size, plating color, or timeline goals."></textarea>
+          </label>
+          <button class="btn btn-primary" type="submit">Request Final Quote</button>
+          <p id="quoteMessage" class="lead" style="margin-top: 0.75rem"></p>
+        </form>
+
+        <aside class="panel">
+          <h3>Instant Estimate</h3>
+          <div id="quoteSummary" class="quote-summary"></div>
+          <p class="lead" style="margin-top: 0.75rem">Final pricing is confirmed after artwork and packaging details are reviewed.</p>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="inner shell">
+        <span>© 2026 Pownce Pins</span>
+        <div class="footer-links">
+          <a href="tos.html">Terms and Privacy</a>
+          <a href="faq.html">FAQ</a>
+          <a href="contact-us.html">Contact Us</a>
+        </div>
+      </div>
+    </footer>
+
+    <aside id="cartDrawer" class="cart-drawer" aria-hidden="true">
+      <div class="cart-header">
+        <h3>Your Cart</h3>
+        <button id="closeCart" class="small-btn">Close</button>
+      </div>
+      <div id="cartItems" class="cart-items"></div>
+      <div class="cart-footer">
+        <div class="total-row"><span>Subtotal</span><strong id="cartTotal">$0.00</strong></div>
+        <button class="btn btn-primary full">Checkout</button>
+      </div>
+    </aside>
+    <div id="backdrop" class="backdrop" hidden></div>
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pownce Pins | Home</title>
+    <meta name="description" content="Pownce Pins collectible enamel pin storefront" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav shell">
+        <a class="brand" href="index.html" aria-label="Pownce Pins home">
+          <img class="nav-logo" src="assets/pins/pounceIcoOrange.png" alt="Pownce logo" />
+        </a>
+        <div class="nav-links">
+          <a class="active" href="index.html">Home</a>
+          <a href="shop.html">Shop</a>
+          <a href="collection.html">Collection</a>
+          <a href="creator-portal.html">Creator Portal</a>
+          <a href="quote.html">Bulk Quote</a>
+          <a href="faq.html">FAQ</a>
+          <a href="collaborate.html">Collaborate</a>
+          <a href="contact-us.html">Contact</a>
+        </div>
+        <button id="cartToggle" class="cart-btn">Cart <span id="cartCount">0</span></button>
+      </nav>
+    </header>
+
+    <main class="page shell home-main">
+      <section class="home-hero">
+        <div class="home-hero-content home-hero-layout">
+          <div class="hero-brand-block">
+            <h1 class="hero-title">
+              <img class="hero-title-logo" src="assets/pins/pounceIcoWhite.png" alt="Pownce white logo" />
+              Pownce Pins
+            </h1>
+            <form class="hero-signup" action="#" method="post">
+              <input type="email" name="email" placeholder="Enter your email" aria-label="Email address" required />
+              <button class="btn btn-primary" type="submit">Sign Up</button>
+            </form>
+            <div class="hero-socials" aria-label="Social media links">
+              <a href="#" aria-label="Instagram">Instagram</a>
+              <a href="#" aria-label="TikTok">TikTok</a>
+              <a href="#" aria-label="X">X</a>
+              <a href="#" aria-label="YouTube">YouTube</a>
+            </div>
+          </div>
+          <div class="hero-potm">
+            <div class="potm-card">
+              <a class="potm-link" href="shop.html?search=Salem" aria-label="View Salem pin in shop">
+                <img src="assets/pins/salem.png" alt="Salem enamel pin" />
+              </a>
+              <div class="potm-copy">
+                <p class="potm-kicker">Pin of the Month</p>
+                <h3>Salem • March Pick</h3>
+                <p>Salem is this month’s winner and is now in production for the next limited run.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-top">
+          <div>
+            <h2>New Arrivals</h2>
+            <p class="lead">Fresh drops and newly listed collectibles.</p>
+          </div>
+          <a class="small-btn" href="shop.html">Shop All</a>
+        </div>
+        <div id="newGrid" class="grid" style="margin-top: 0.8rem"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-top">
+          <div>
+            <h2>Etsy Customer Reviews</h2>
+            <p class="lead">5.0 average item rating from 28 reviews.</p>
+          </div>
+        </div>
+        <div id="etsyReviewGrid" class="review-grid" style="margin-top: 0.8rem"></div>
+      </section>
+
+    </main>
+
+    <footer class="site-footer">
+      <div class="inner shell">
+        <span>© 2026 Pownce Pins</span>
+        <div class="footer-links">
+          <a href="tos.html">Terms and Privacy</a>
+          <a href="faq.html">FAQ</a>
+          <a href="contact-us.html">Contact Us</a>
+        </div>
+      </div>
+    </footer>
+
+    <aside id="cartDrawer" class="cart-drawer" aria-hidden="true">
+      <div class="cart-header">
+        <h3>Your Cart</h3>
+        <button id="closeCart" class="small-btn">Close</button>
+      </div>
+      <div id="cartItems" class="cart-items"></div>
+      <div class="cart-footer">
+        <div class="total-row"><span>Subtotal</span><strong id="cartTotal">$0.00</strong></div>
+        <button class="btn btn-primary full">Checkout</button>
+      </div>
+    </aside>
+    <div id="backdrop" class="backdrop" hidden></div>
+    <script src="script.js"></script>
+  </body>
+</html>

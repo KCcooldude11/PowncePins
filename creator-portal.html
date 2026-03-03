@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pownce Pins | Creator Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav shell">
+        <a class="brand" href="index.html" aria-label="Pownce Pins home">
+          <img class="nav-logo" src="assets/pins/pounceIcoOrange.png" alt="Pownce logo" />
+        </a>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="shop.html">Shop</a>
+          <a href="collection.html">Collection</a>
+          <a class="active" href="creator-portal.html">Creator Portal</a>
+          <a href="quote.html">Bulk Quote</a>
+          <a href="faq.html">FAQ</a>
+          <a href="collaborate.html">Collaborate</a>
+          <a href="contact-us.html">Contact</a>
+
+        </div>
+        <button id="cartToggle" class="cart-btn">Cart <span id="cartCount">0</span></button>
+      </nav>
+    </header>
+
+    <main class="page shell">
+      <section class="section panel">
+        <h2>Creator Sale Portal</h2>
+        <p class="lead">Track live sales performance for your active pin campaigns.</p>
+      </section>
+
+      <section class="section split portal-layout">
+        <aside class="panel">
+          <h3>Campaign Selector</h3>
+          <label for="creatorSelect">Creator Account</label>
+          <select id="creatorSelect" class="portal-select"></select>
+          <p class="lead" style="margin-top: 0.6rem">Data updates every 24 hours in this demo portal.</p>
+        </aside>
+        <div class="panel">
+          <h3 id="campaignName">-</h3>
+          <p id="campaignWindow" class="lead">-</p>
+          <div id="analyticsCards" class="analytics-grid"></div>
+          <h3 style="margin-top: 1rem">7 Day Sales Trend</h3>
+          <div id="trendBars" class="trend-bars"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="inner shell">
+        <span>© 2026 Pownce Pins</span>
+        <div class="footer-links">
+          <a href="tos.html">Terms and Privacy</a>
+          <a href="faq.html">FAQ</a>
+          <a href="contact-us.html">Contact Us</a>
+        </div>
+      </div>
+    </footer>
+
+    <aside id="cartDrawer" class="cart-drawer" aria-hidden="true">
+      <div class="cart-header">
+        <h3>Your Cart</h3>
+        <button id="closeCart" class="small-btn">Close</button>
+      </div>
+      <div id="cartItems" class="cart-items"></div>
+      <div class="cart-footer">
+        <div class="total-row"><span>Subtotal</span><strong id="cartTotal">$0.00</strong></div>
+        <button class="btn btn-primary full">Checkout</button>
+      </div>
+    </aside>
+    <div id="backdrop" class="backdrop" hidden></div>
+    <script src="script.js"></script>
+  </body>
+</html>
