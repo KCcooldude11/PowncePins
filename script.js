@@ -419,16 +419,17 @@ function renderCreatorCampaign(campaign) {
     </article>
   `;
 
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const maxSales = Math.max(...campaign.dailySales, 1);
   trendBars.innerHTML = campaign.dailySales
     .map(
       (value, index) => `
       <article class="trend-bar-card">
-        <p>D${index + 1}</p>
+        <p class="day-label">${dayNames[index]}</p>
         <div class="trend-track">
           <span class="trend-fill" style="height:${Math.max(12, (value / maxSales) * 100)}%"></span>
         </div>
-        <strong>${value}</strong>
+        <strong class="day-value">${value}</strong>
       </article>
     `
     )
@@ -778,6 +779,11 @@ document.addEventListener('click', (event) => {
     openBringBackModal(bringBackButton.dataset.bringBack);
   }
 
+  const checkoutButton = event.target.closest('#checkoutBtn');
+  if (checkoutButton) {
+    window.location.href = 'checkout.html';
+  }
+
   const faqToggle = event.target.closest('[data-faq]');
   if (faqToggle) {
     faqToggle.parentElement.classList.toggle('open');
@@ -813,6 +819,85 @@ if (contactForm) {
     }
     contactForm.reset();
   });
+}
+
+// Checkout form functionality
+const checkoutForm = document.querySelector('#checkoutForm');
+if (checkoutForm) {
+  const paymentMethodRadios = checkoutForm.querySelectorAll('input[name="paymentMethod"]');
+  const cardPaymentSection = document.querySelector('#cardPayment');
+  const paypalPaymentSection = document.querySelector('#paypalPayment');
+  const shippingMethodRadios = checkoutForm.querySelectorAll('input[name="shippingMethod"]');
+  const shippingCostEl = document.querySelector('#shippingCost');
+  const taxEl = document.querySelector('#tax');
+  const totalEl = document.querySelector('#total');
+  const subtotalEl = document.querySelector('#subtotal');
+
+  const shippingCosts = {
+    standard: 5.99,
+    express: 12.99,
+    overnight: 24.99
+  };
+
+  const subtotal = 25.98;
+
+  function updateTotal() {
+    const selectedShipping = checkoutForm.querySelector('input[name="shippingMethod"]:checked');
+    const shippingCost = shippingCosts[selectedShipping.value] || 5.99;
+    const tax = parseFloat(((subtotal + shippingCost) * 0.08).toFixed(2));
+    const total = parseFloat((subtotal + shippingCost + tax).toFixed(2));
+
+    shippingCostEl.textContent = '$' + shippingCost.toFixed(2);
+    taxEl.textContent = '$' + tax.toFixed(2);
+    totalEl.textContent = '$' + total.toFixed(2);
+  }
+
+  paymentMethodRadios.forEach((radio) => {
+    radio.addEventListener('change', (event) => {
+      if (event.target.value === 'card') {
+        cardPaymentSection.classList.add('active');
+        paypalPaymentSection.classList.remove('active');
+      } else {
+        cardPaymentSection.classList.remove('active');
+        paypalPaymentSection.classList.add('active');
+      }
+    });
+  });
+
+  shippingMethodRadios.forEach((radio) => {
+    radio.addEventListener('change', updateTotal);
+  });
+
+  checkoutForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    alert('Order placed successfully! Thank you for your purchase.');
+    checkoutForm.reset();
+  });
+
+  // Format card number input
+  const cardNumberInput = checkoutForm.querySelector('input[name="cardNumber"]');
+  if (cardNumberInput) {
+    cardNumberInput.addEventListener('input', (event) => {
+      let value = event.target.value.replace(/\s/g, '');
+      let formattedValue = value.replace(/(\d{4})/g, '$1 ').trim();
+      event.target.value = formattedValue;
+    });
+  }
+
+  // Format expiry date input
+  const expiryInput = checkoutForm.querySelector('input[name="cardExpiry"]');
+  if (expiryInput) {
+    expiryInput.addEventListener('input', (event) => {
+      let value = event.target.value.replace(/\D/g, '');
+      if (value.length >= 2) {
+        value = value.substring(0, 2) + '/' + value.substring(2, 4);
+      }
+      event.target.value = value;
+    });
+  }
+
+  // Initialize total calculation
+  updateTotal();
 }
 
 renderHomeSections();

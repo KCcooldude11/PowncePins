@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="content-page">
     <header class="site-header">
       <nav class="nav shell">
         <a class="brand" href="index.html" aria-label="Pownce Pins home">
@@ -21,9 +21,7 @@
           <a href="collection.html">Collection</a>
           <a class="active" href="creator-portal.html">Creator Portal</a>
           <a href="quote.html">Bulk Quote</a>
-          <a href="faq.html">FAQ</a>
           <a href="collaborate.html">Collaborate</a>
-          <a href="contact-us.html">Contact</a>
 
         </div>
         <button id="cartToggle" class="cart-btn">Cart <span id="cartCount">0</span></button>
@@ -33,23 +31,27 @@
     <main class="page shell">
       <section class="section panel">
         <h2>Creator Sale Portal</h2>
-        <p class="lead">Track live sales performance for your active pin campaigns.</p>
+        <p class="lead">Track live sales performance for your active pin campaigns. View detailed analytics, sales trends, and customer engagement metrics.</p>
       </section>
 
       <section class="section split portal-layout">
         <aside class="panel">
           <h3>Campaign Selector</h3>
-          <label for="creatorSelect">Creator Account</label>
+          <label for="creatorSelect" style="font-weight: 600; font-size: 0.95rem;">Select Your Campaign</label>
           <select id="creatorSelect" class="portal-select"></select>
-          <p class="lead" style="margin-top: 0.6rem">Data updates every 24 hours in this demo portal.</p>
+          <p class="lead" style="margin-top: 0.8rem; font-size: 0.875rem;"> Data updates every 24 hours in this demo portal.</p>
         </aside>
         <div class="panel">
-          <h3 id="campaignName">-</h3>
-          <p id="campaignWindow" class="lead">-</p>
+          <h3 id="campaignName" style="font-size: 1.5rem; margin-bottom: 0.25rem;">-</h3>
+          <p id="campaignWindow" class="lead" style="font-size: 0.95rem; color: var(--muted);">-</p>
+          
+          <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.25rem;"> Performance Metrics</h3>
           <div id="analyticsCards" class="analytics-grid"></div>
-          <h3 style="margin-top: 1rem">7 Day Sales Trend</h3>
+          
+          <h3 style="margin-top: 2rem; margin-bottom: 0.5rem; font-size: 1.25rem;"> Weekly Sales Trend</h3>
           <div id="trendBars" class="trend-bars"></div>
-          <h3 style="margin-top: 1rem">Bring-Back Requests</h3>
+          
+          <h3 style="margin-top: 2rem; margin-bottom: 0.5rem; font-size: 1.25rem;"> Bring-Back Requests</h3>
           <div id="bringBackRequests" class="request-list"></div>
         </div>
       </section>
@@ -74,7 +76,7 @@
       <div id="cartItems" class="cart-items"></div>
       <div class="cart-footer">
         <div class="total-row"><span>Subtotal</span><strong id="cartTotal">$0.00</strong></div>
-        <button class="btn btn-primary full">Checkout</button>
+        <button id="checkoutBtn" class="btn btn-primary full">Checkout</button>
       </div>
     </aside>
     <div id="backdrop" class="backdrop" hidden></div>

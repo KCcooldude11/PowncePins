@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="content-page">
     <header class="site-header">
       <nav class="nav shell">
         <a class="brand" href="index.html" aria-label="Pownce Pins home">
@@ -21,9 +21,7 @@
           <a href="collection.html">Collection</a>
           <a href="creator-portal.html">Creator Portal</a>
           <a href="quote.html">Bulk Quote</a>
-          <a href="faq.html">FAQ</a>
           <a class="active" href="collaborate.html">Collaborate</a>
-          <a href="contact-us.html">Contact</a>
         </div>
         <button id="cartToggle" class="cart-btn">Cart <span id="cartCount">0</span></button>
       </nav>
@@ -70,7 +68,7 @@
       <div id="cartItems" class="cart-items"></div>
       <div class="cart-footer">
         <div class="total-row"><span>Subtotal</span><strong id="cartTotal">$0.00</strong></div>
-        <button class="btn btn-primary full">Checkout</button>
+        <button id="checkoutBtn" class="btn btn-primary full">Checkout</button>
       </div>
     </aside>
     <div id="backdrop" class="backdrop" hidden></div>

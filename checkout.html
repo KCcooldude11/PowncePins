@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pownce Pins | Checkout</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="content-page">
+    <header class="site-header">
+      <nav class="nav shell">
+        <a class="brand" href="index.html" aria-label="Pownce Pins home">
+          <img class="nav-logo" src="assets/pins/Logo.png" alt="Pownce Pins logo" />
+        </a>
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="shop.html">Shop</a>
+          <a href="collection.html">Collection</a>
+          <a href="creator-portal.html">Creator Portal</a>
+          <a href="quote.html">Bulk Quote</a>
+          <a href="collaborate.html">Collaborate</a>
+        </div>
+        <button id="cartToggle" class="cart-btn">Cart <span id="cartCount">0</span></button>
+      </nav>
+    </header>
+
+    <main class="page shell">
+      <section class="section panel">
+        <h2>Checkout</h2>
+        <p class="lead">Complete your purchase securely</p>
+      </section>
+
+      <form id="checkoutForm" class="checkout-layout">
+        <div class="checkout-main">
+          <!-- Shipping Information -->
+          <section class="checkout-section panel">
+            <h3>Shipping Address</h3>
+            <div class="form-row">
+              <label>
+                First Name
+                <input type="text" name="firstName" required />
+              </label>
+              <label>
+                Last Name
+                <input type="text" name="lastName" required />
+              </label>
+            </div>
+            <label>
+              Email Address
+              <input type="email" name="email" required />
+            </label>
+            <label>
+              Street Address
+              <input type="text" name="address" required />
+            </label>
+            <label>
+              Apartment, Suite, etc. (Optional)
+              <input type="text" name="address2" />
+            </label>
+            <div class="form-row">
+              <label>
+                City
+                <input type="text" name="city" required />
+              </label>
+              <label>
+                State / Province
+                <input type="text" name="state" required />
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                Postal Code
+                <input type="text" name="zip" required />
+              </label>
+              <label>
+                Country
+                <select name="country" required>
+                  <option value="">Select Country</option>
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="MX">Mexico</option>
+                  <option value="GB">United Kingdom</option>
+                  <option value="AU">Australia</option>
+                  <option value="JP">Japan</option>
+                  <option value="DE">Germany</option>
+                  <option value="FR">France</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+            </div>
+            <label style="margin-top: 1rem;">
+              <input type="checkbox" name="sameAsBilling" checked />
+              Billing address same as shipping
+            </label>
+          </section>
+
+          <!-- Payment Method -->
+          <section class="checkout-section panel">
+            <h3>Payment Method</h3>
+            <div class="payment-methods">
+              <label class="payment-option">
+                <input type="radio" name="paymentMethod" value="card" checked />
+                <div class="payment-option-content">
+                  <span class="payment-icon">💳</span>
+                  <div>
+                    <strong>Credit or Debit Card</strong>
+                    <p>Visa, Mastercard, American Express</p>
+                  </div>
+                </div>
+              </label>
+
+              <label class="payment-option">
+                <input type="radio" name="paymentMethod" value="paypal" />
+                <div class="payment-option-content">
+                  <span class="payment-icon">🅿️</span>
+                  <div>
+                    <strong>PayPal</strong>
+                    <p>Fast and secure PayPal checkout</p>
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Credit Card Section -->
+            <div id="cardPayment" class="payment-section active">
+              <h4 style="margin-top: 1.5rem;">Card Details</h4>
+              <label>
+                Full Name on Card
+                <input type="text" name="cardName" required />
+              </label>
+              <label>
+                Card Number
+                <input type="text" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required />
+              </label>
+              <div class="form-row">
+                <label>
+                  Expiration Date
+                  <input type="text" name="cardExpiry" placeholder="MM/YY" maxlength="5" required />
+                </label>
+                <label>
+                  CVV
+                  <input type="text" name="cardCVV" placeholder="123" maxlength="4" required />
+                </label>
+              </div>
+              <label>
+                <input type="checkbox" name="saveCard" />
+                Save this card for future purchases
+              </label>
+            </div>
+
+            <!-- PayPal Section -->
+            <div id="paypalPayment" class="payment-section">
+              <div class="paypal-info">
+                <h4 style="margin-top: 1.5rem;">PayPal Account</h4>
+                <p style="color: var(--muted); margin: 0.5rem 0 1.5rem 0;">You will be redirected to PayPal to securely complete your payment.</p>
+                <div style="padding: 1rem; background: #f8f9fa; border-radius: 10px; border-left: 4px solid var(--primary);">
+                  <p style="margin: 0; font-size: 0.95rem;">
+                    <strong>Email:</strong> <span id="paypalEmail" style="color: var(--primary);">your@email.com</span>
+                  </p>
+                </div>
+                <div style="margin-top: 1rem;">
+                  <button type="button" class="btn btn-secondary full" style="margin-bottom: 0.5rem;">Change PayPal Account</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Shipping Method -->
+          <section class="checkout-section panel">
+            <h3>Shipping Method</h3>
+            <div class="shipping-options">
+              <label class="shipping-option">
+                <input type="radio" name="shippingMethod" value="standard" checked />
+                <div>
+                  <strong>Standard Shipping</strong>
+                  <p style="margin: 0.25rem 0 0; color: var(--muted);">5-7 business days</p>
+                </div>
+                <span class="shipping-price">$5.99</span>
+              </label>
+
+              <label class="shipping-option">
+                <input type="radio" name="shippingMethod" value="express" />
+                <div>
+                  <strong>Express Shipping</strong>
+                  <p style="margin: 0.25rem 0 0; color: var(--muted);">2-3 business days</p>
+                </div>
+                <span class="shipping-price">$12.99</span>
+              </label>
+
+              <label class="shipping-option">
+                <input type="radio" name="shippingMethod" value="overnight" />
+                <div>
+                  <strong>Overnight Shipping</strong>
+                  <p style="margin: 0.25rem 0 0; color: var(--muted);">Next business day</p>
+                </div>
+                <span class="shipping-price">$24.99</span>
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <!-- Order Summary -->
+        <aside class="checkout-sidebar">
+          <div class="panel">
+            <h3 style="margin-top: 0;">Order Summary</h3>
+            
+            <div id="cartItemsSummary" class="cart-summary">
+              <!-- Items will be populated here -->
+              <div class="summary-item">
+                <span>Pownce Pin - Blue Edition</span>
+                <span class="summary-price">$12.99</span>
+              </div>
+              <div class="summary-item">
+                <span>Pownce Pin - Red Edition</span>
+                <span class="summary-price">$12.99</span>
+              </div>
+            </div>
+
+            <div class="summary-divider"></div>
+
+            <div class="summary-line">
+              <span>Subtotal</span>
+              <span id="subtotal">$25.98</span>
+            </div>
+            <div class="summary-line">
+              <span>Shipping</span>
+              <span id="shippingCost">$5.99</span>
+            </div>
+            <div class="summary-line">
+              <span>Tax</span>
+              <span id="tax">$2.08</span>
+            </div>
+
+            <div class="summary-divider"></div>
+
+            <div class="summary-total">
+              <span>Total</span>
+              <span id="total">$34.05</span>
+            </div>
+
+            <button type="submit" class="btn btn-primary full" style="margin-top: 1.5rem;">
+              Complete Purchase
+            </button>
+
+            <button type="button" class="btn btn-secondary full" style="margin-top: 0.5rem;">
+              Continue Shopping
+            </button>
+
+            <p style="text-align: center; margin-top: 1rem; font-size: 0.85rem; color: var(--muted);">
+              🔒 Your payment information is secure and encrypted
+            </p>
+          </div>
+        </aside>
+      </form>
+    </main>
+
+    <footer class="site-footer">
+      <div class="inner shell">
+        <span>© 2026 Pownce Pins</span>
+        <div class="footer-links">
+          <a href="tos.html">Terms and Privacy</a>
+          <a href="faq.html">FAQ</a>
+          <a href="contact-us.html">Contact Us</a>
+        </div>
+      </div>
+    </footer>
+
+    <aside id="cartDrawer" class="cart-drawer" aria-hidden="true">
+      <div class="cart-header">
+        <h3>Your Cart</h3>
+        <button id="closeCart" class="small-btn">Close</button>
+      </div>
+      <div id="cartItems" class="cart-items"></div>
+      <div class="cart-footer">
+        <div class="total-row"><span>Subtotal</span><strong id="cartTotal">$0.00</strong></div>
+        <button id="checkoutBtn" class="btn btn-primary full">Checkout</button>
+      </div>
+    </aside>
+    <div id="backdrop" class="backdrop" hidden></div>
+    <script src="script.js"></script>
+  </body>
+</html>
