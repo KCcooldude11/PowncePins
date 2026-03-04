@@ -15,7 +15,7 @@ const PRODUCTS = [
     name: 'Limited Edition Orchard Enamel Pin',
     category: 'Character Pins',
     price: 18,
-    stock: 30,
+    stock: 0,
     image: 'assets/pins/orchard.png',
     featured: true,
     description: '',
@@ -37,13 +37,20 @@ const PRODUCTS = [
     name: 'Limited Edition Apple Enamel Pin',
     category: 'Character Pins',
     price: 18,
-    stock: 20,
+    stock: 0,
     image: 'assets/pins/apple.png',
     featured: true,
     description: '',
     newDrop: true
   }
 ];
+
+const SOLD_OUT_PRODUCT_IDS = new Set(['p002', 'p004']);
+
+const BRING_BACK_CAMPAIGN_MAP = {
+  p002: 'orchard-guild',
+  p004: 'apple-core'
+};
 
 const HOMEPAGE_TIERS = [
   { price: 475, unit: '$9.50 per pin', quantity: '50 custom pins', cta: 'Request Project' },
@@ -184,7 +191,9 @@ const QUOTE_STYLE_MODIFIERS = {
 const state = {
   filter: 'All',
   search: '',
-  cart: JSON.parse(localStorage.getItem('pownce-cart') || '{}')
+  cart: JSON.parse(localStorage.getItem('pownce-cart') || '{}'),
+  bringBackRequests: JSON.parse(localStorage.getItem('pownce-bring-back-requests') || '[]'),
+  bringBackProductId: ''
 };
 
 const urlSearch = new URLSearchParams(window.location.search);
@@ -199,7 +208,33 @@ function saveCart() {
   localStorage.setItem('pownce-cart', JSON.stringify(state.cart));
 }
 
+function saveBringBackRequests() {
+  localStorage.setItem('pownce-bring-back-requests', JSON.stringify(state.bringBackRequests));
+}
+
+function isSoldOut(product) {
+  return product.stock <= 0 || SOLD_OUT_PRODUCT_IDS.has(product.id);
+}
+
+function getBringBackCountByCampaign(campaignId) {
+  return state.bringBackRequests.filter((request) => request.campaignId === campaignId).length;
+}
+
+function getBringBackItemsByCampaign(campaignId) {
+  return state.bringBackRequests
+    .filter((request) => request.campaignId === campaignId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .map((request) => {
+      const product = PRODUCTS.find((item) => item.id === request.productId);
+      return {
+        ...request,
+        productName: product ? product.name : 'Unknown Pin'
+      };
+    });
+}
+
 function productCard(product) {
+  const soldOut = isSoldOut(product);
   return `
     <article class="card" data-product-id="${product.id}">
       <div class="art"><img src="${product.image}" alt="${product.name}" loading="lazy" /></div>
@@ -210,8 +245,12 @@ function productCard(product) {
           <span class="tag">${product.category}</span>
           <span class="price">${currency.format(product.price)}</span>
         </div>
-        <p class="stock">Stock: ${product.stock}</p>
-        <button class="btn btn-primary full" data-add="${product.id}">Add to Cart</button>
+        <p class="stock ${soldOut ? 'sold-out-text' : ''}">${soldOut ? 'Sold Out' : `Stock: ${product.stock}`}</p>
+        ${
+          soldOut
+            ? `<button class="btn btn-ghost full btn-bring-back" data-bring-back="${product.id}">Bring it back</button>`
+            : `<button class="btn btn-primary full" data-add="${product.id}">Add to Cart</button>`
+        }
       </div>
     </article>
   `;
@@ -341,10 +380,14 @@ function renderCreatorCampaign(campaign) {
   const campaignWindow = document.querySelector('#campaignWindow');
   const analyticsCards = document.querySelector('#analyticsCards');
   const trendBars = document.querySelector('#trendBars');
+  const bringBackRequestsRoot = document.querySelector('#bringBackRequests');
 
   if (!campaignName || !campaignWindow || !analyticsCards || !trendBars) {
     return;
   }
+
+  const bringBackCount = getBringBackCountByCampaign(campaign.id);
+  const campaignBringBackRequests = getBringBackItemsByCampaign(campaign.id);
 
   campaignName.textContent = `${campaign.creatorName} • ${campaign.pinName}`;
   campaignWindow.textContent = campaign.saleWindow;
@@ -370,6 +413,10 @@ function renderCreatorCampaign(campaign) {
       <p class="metric-label">Repeat Customers</p>
       <h3>${campaign.repeatCustomers}</h3>
     </article>
+    <article class="panel analytic-card">
+      <p class="metric-label">Bring-Back Requests</p>
+      <h3>${bringBackCount}</h3>
+    </article>
   `;
 
   const maxSales = Math.max(...campaign.dailySales, 1);
@@ -386,6 +433,28 @@ function renderCreatorCampaign(campaign) {
     `
     )
     .join('');
+
+  if (bringBackRequestsRoot) {
+    if (!campaignBringBackRequests.length) {
+      bringBackRequestsRoot.innerHTML = '<p class="request-empty">No bring-back requests yet.</p>';
+      return;
+    }
+
+    bringBackRequestsRoot.innerHTML = campaignBringBackRequests
+      .slice(0, 8)
+      .map(
+        (request) => `
+        <article class="request-item">
+          <div>
+            <h4>${request.productName}</h4>
+            <p>${request.email}</p>
+          </div>
+          <span>${new Date(request.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+        </article>
+      `
+      )
+      .join('');
+  }
 }
 
 function renderCreatorPortal() {
@@ -394,12 +463,15 @@ function renderCreatorPortal() {
     return;
   }
 
+  const previousValue = creatorSelect.value;
   creatorSelect.innerHTML = CREATOR_CAMPAIGNS.map(
     (campaign) => `<option value="${campaign.id}">${campaign.creatorName}</option>`
   ).join('');
 
-  const initialCampaign = CREATOR_CAMPAIGNS[0];
+  const initialCampaign =
+    CREATOR_CAMPAIGNS.find((campaign) => campaign.id === previousValue) || CREATOR_CAMPAIGNS[0];
   if (initialCampaign) {
+    creatorSelect.value = initialCampaign.id;
     renderCreatorCampaign(initialCampaign);
   }
 
@@ -407,6 +479,115 @@ function renderCreatorPortal() {
     const selectedCampaign = CREATOR_CAMPAIGNS.find((campaign) => campaign.id === creatorSelect.value);
     if (selectedCampaign) {
       renderCreatorCampaign(selectedCampaign);
+    }
+  });
+}
+
+function openBringBackModal(productId) {
+  const modal = document.querySelector('#bringBackModal');
+  if (!modal) {
+    return;
+  }
+
+  const product = PRODUCTS.find((item) => item.id === productId);
+  const bringBackPinName = document.querySelector('#bringBackPinName');
+  const bringBackEmail = document.querySelector('#bringBackEmail');
+  const bringBackMessage = document.querySelector('#bringBackMessage');
+  state.bringBackProductId = productId;
+
+  if (bringBackPinName) {
+    bringBackPinName.textContent = product ? product.name : 'this pin';
+  }
+  if (bringBackEmail) {
+    bringBackEmail.value = '';
+  }
+  if (bringBackMessage) {
+    bringBackMessage.textContent = '';
+  }
+
+  modal.hidden = false;
+}
+
+function closeBringBackModal() {
+  const modal = document.querySelector('#bringBackModal');
+  if (!modal) {
+    return;
+  }
+  modal.hidden = true;
+  state.bringBackProductId = '';
+}
+
+function initBringBackModal() {
+  if (document.querySelector('#bringBackModal')) {
+    return;
+  }
+
+  const modal = document.createElement('section');
+  modal.id = 'bringBackModal';
+  modal.className = 'request-modal';
+  modal.hidden = true;
+  modal.innerHTML = `
+    <div class="request-modal-backdrop" data-close-request></div>
+    <div class="request-modal-panel" role="dialog" aria-modal="true" aria-labelledby="bringBackTitle">
+      <div class="request-modal-head">
+        <h3 id="bringBackTitle">Request a Pin Return</h3>
+        <button class="small-btn" type="button" data-close-request>Close</button>
+      </div>
+      <p class="lead">Get notified when <strong id="bringBackPinName">this pin</strong> is back in production.</p>
+      <form id="bringBackForm" class="request-form">
+        <label>
+          Email
+          <input id="bringBackEmail" type="email" required placeholder="you@example.com" />
+        </label>
+        <button class="btn btn-primary full" type="submit">Notify Me</button>
+      </form>
+      <p id="bringBackMessage" class="lead"></p>
+    </div>
+  `;
+  document.body.append(modal);
+
+  const bringBackForm = modal.querySelector('#bringBackForm');
+  if (!bringBackForm) {
+    return;
+  }
+
+  bringBackForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const bringBackEmail = document.querySelector('#bringBackEmail');
+    const bringBackMessage = document.querySelector('#bringBackMessage');
+
+    if (!bringBackEmail || !bringBackMessage || !state.bringBackProductId) {
+      return;
+    }
+
+    const email = bringBackEmail.value.trim().toLowerCase();
+    const productId = state.bringBackProductId;
+    const campaignId = BRING_BACK_CAMPAIGN_MAP[productId] || '';
+
+    const alreadyRequested = state.bringBackRequests.some(
+      (request) => request.productId === productId && request.email === email
+    );
+
+    if (alreadyRequested) {
+      bringBackMessage.textContent = 'You already requested this pin. We will email you if it returns.';
+      return;
+    }
+
+    state.bringBackRequests.push({
+      productId,
+      campaignId,
+      email,
+      createdAt: new Date().toISOString()
+    });
+    saveBringBackRequests();
+    bringBackMessage.textContent = 'Request received. The creator has been notified and your email is on the list.';
+
+    const creatorSelect = document.querySelector('#creatorSelect');
+    if (creatorSelect) {
+      const selectedCampaign = CREATOR_CAMPAIGNS.find((campaign) => campaign.id === creatorSelect.value);
+      if (selectedCampaign) {
+        renderCreatorCampaign(selectedCampaign);
+      }
     }
   });
 }
@@ -592,6 +773,11 @@ document.addEventListener('click', (event) => {
     renderShop();
   }
 
+  const bringBackButton = event.target.closest('[data-bring-back]');
+  if (bringBackButton) {
+    openBringBackModal(bringBackButton.dataset.bringBack);
+  }
+
   const faqToggle = event.target.closest('[data-faq]');
   if (faqToggle) {
     faqToggle.parentElement.classList.toggle('open');
@@ -603,6 +789,10 @@ document.addEventListener('click', (event) => {
 
   if (event.target.closest('#closeCart') || event.target.closest('#backdrop')) {
     setCartOpen(false);
+  }
+
+  if (event.target.closest('[data-close-request]')) {
+    closeBringBackModal();
   }
 });
 
@@ -632,3 +822,4 @@ renderCollection();
 renderCreatorPortal();
 bindQuoteForm();
 renderCart();
+initBringBackModal();
