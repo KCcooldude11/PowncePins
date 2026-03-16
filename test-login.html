@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pownce Pins Auth Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/supabase.min.js"></script>
+</head>
+<body>
+  <h1>Pownce Pins Login Test</h1>
+
+  <button id="google-login">Sign in with Google</button>
+  <br><br>
+  <input id="email" placeholder="Email" />
+  <input id="password" type="password" placeholder="Password" />
+  <button id="email-login">Sign in with Email</button>
+
+  <script>
+    const supabaseUrl = 'https://YOUR_PROJECT_REF.supabase.co';
+    const supabaseKey = 'YOUR_ANON_KEY';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // Google Login
+    document.getElementById('google-login').onclick = async () => {
+      const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      if (error) console.error(error);
+      else console.log('Redirecting to Google...', data.url);
+    };
+
+    // Email Login
+    document.getElementById('email-login').onclick = async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) console.error(error);
+      else console.log('Logged in user:', data.user);
+    };
+
+    // Check current user
+    async function getUser() {
+      const { data } = await supabase.auth.getUser();
+      console.log('Current user:', data.user);
+    }
+
+    getUser();
+  </script>
+</body>
+</html>
