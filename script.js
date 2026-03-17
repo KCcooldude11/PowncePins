@@ -375,15 +375,66 @@ function renderCollection() {
   }
 
   collectionRoot.innerHTML = PRODUCTS.map(
-    (product, index) => `
-      <article class="collection-card">
-        <p class="collection-number">#${String(index + 1).padStart(2, '0')}</p>
-        <div class="collection-art"><img src="${product.image}" alt="${product.name}" loading="lazy" /></div>
-        <h3>${product.name}</h3>
-        <p class="card-desc">${product.description}</p>
-      </article>
-    `
+    (product, index) => {
+      // Mark the Story pin (POWNCE #001) with a data attribute
+      const isStory = product.id === 'p000';
+      return `
+        <article class="collection-card" data-product-id="${product.id}"${isStory ? ' data-story-pin="true"' : ''}>
+          <p class="collection-number">#${String(index + 1).padStart(2, '0')}</p>
+          <div class="collection-art"><img src="${product.image}" alt="${product.name}" loading="lazy" /></div>
+          <h3>${product.name}</h3>
+          <p class="card-desc">${product.description}</p>
+        </article>
+      `;
+    }
   ).join('');
+
+  // Modal logic for Story pin
+  const storyCard = collectionRoot.querySelector('[data-story-pin="true"]');
+  const storyModal = document.getElementById('storyModal');
+  const storyModalImg = document.getElementById('storyModalImg');
+  const carouselNext = document.getElementById('carouselNext');
+  const storyModalClose = document.querySelector('.story-modal-close');
+  let showingFront = true;
+  if (storyCard && storyModal && storyModalImg && carouselNext && storyModalClose) {
+    storyCard.style.cursor = 'pointer';
+    storyCard.addEventListener('click', () => {
+      showingFront = true;
+      storyModalImg.src = 'assets/pins/POWNCE001.png';
+      storyModalImg.alt = 'Rankless Story Enamel Pin';
+      storyModal.removeAttribute('hidden');
+      document.body.style.overflow = 'hidden';
+    });
+    carouselNext.onclick = () => {
+      if (showingFront) {
+        storyModalImg.src = 'assets/pins/cards/RanklessStoryCardFront.png';
+        storyModalImg.alt = 'Rankless Story Trading Card';
+        showingFront = false;
+      } else {
+        storyModalImg.src = 'assets/pins/POWNCE001.png';
+        storyModalImg.alt = 'Rankless Story Enamel Pin';
+        showingFront = true;
+      }
+    };
+    storyModalClose.onclick = () => {
+      storyModal.setAttribute('hidden', '');
+      document.body.style.overflow = '';
+    };
+    // Close modal on backdrop click
+    storyModal.addEventListener('click', (e) => {
+      if (e.target === storyModal) {
+        storyModal.setAttribute('hidden', '');
+        document.body.style.overflow = '';
+      }
+    });
+    // Close modal on Escape key
+    document.addEventListener('keydown', function escListener(evt) {
+      if (!storyModal.hasAttribute('hidden') && evt.key === 'Escape') {
+        storyModal.setAttribute('hidden', '');
+        document.body.style.overflow = '';
+      }
+    });
+  }
 }
 
 function renderCreatorCampaign(campaign) {
