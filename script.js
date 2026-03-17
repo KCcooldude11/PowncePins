@@ -1,5 +1,16 @@
 const PRODUCTS = [
   {
+    id: 'p000',
+    name: 'Rankless Story Enamel Pin',
+    category: 'Special Releases',
+    price: 40,
+    stock: 50,
+    image: 'assets/pins/POWNCE #001.png',
+    featured: true,
+    description: 'Rankless is a graphic novel. This is the March Pick.',
+    newDrop: true
+  },
+  {
     id: 'p001',
     name: 'Limited Edition Orange Enamel Pin',
     category: 'Character Pins',
