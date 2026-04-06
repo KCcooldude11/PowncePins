@@ -1,0 +1,5 @@
+Every story card has a qr code that needs to take them to
+a small part of the website that talks about the comic
+and where you can read it.
+
+Put a button on the carousel

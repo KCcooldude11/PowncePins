@@ -29,9 +29,12 @@
     </header>
 
     <main class="page shell">
-      <section class="section panel">
-        <h2>Full Pin Collection</h2>
-        <p class="lead">Every pin we have made, numbered by release order.</p>
+
+      <section class="section panel" style="padding-bottom: 0.7rem;">
+        <div class="collection-tabs">
+          <button class="collection-tab active" id="tabStoryPins" type="button">Story Pins</button>
+          <button class="collection-tab" id="tabCharacterPins" type="button">Character Pins</button>
+        </div>
       </section>
 
       <section class="section">
@@ -66,12 +69,29 @@
     <div id="storyModal" class="story-modal" hidden>
       <div class="story-modal-content">
         <button class="story-modal-close" aria-label="Close">&times;</button>
-        <div class="story-carousel">
-          <img id="storyModalImg" src="assets/pins/POWNCE001.png" alt="Rankless Story Enamel Pin" />
-          <button class="carousel-arrow" id="carouselNext" aria-label="Next card">&#8594;</button>
+        <div class="story-carousel story-carousel-fixed">
+          <div class="carousel-img-frame">
+            <img id="imgCurrent" class="carousel-img active" />
+            <img id="imgNext" class="carousel-img" />
+          </div>
+          <button id="carouselPrev" class="carousel-arrow left">❮</button>
+          <button id="carouselNext" class="carousel-arrow right">❯</button>
+        </div>
+        <div class="modal-product-info">
+          <h3 class="product-title">Rankless Story Enamel Pin</h3>
+          <p class="product-desc">Rankless is a graphic novel. This is the March Pick.</p>
+          <div class="product-meta-row">
+            <span class="product-tag">Story Pin</span>
+            <span class="product-price">$40.00</span>
+          </div>
+          <div class="product-stock">Stock: 50</div>
+          <button class="btn btn-primary full" data-add="p000">
+            Add to Cart
+          </button>
         </div>
       </div>
     </div>
+    <script src="storyPinUrls.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

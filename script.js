@@ -1,14 +1,20 @@
+// Shared carousel state for all modals
+
+let carouselImages = [];
+let carouselIndex = 0;
 const PRODUCTS = [
   {
     id: 'p000',
     name: 'Rankless Story Enamel Pin',
-    category: 'Special Releases',
+    category: 'Story Pins',
     price: 40,
     stock: 50,
     image: 'assets/pins/POWNCE001.png',
     featured: true,
     description: 'Rankless is a graphic novel. This is the March Pick.',
-    newDrop: true
+    newDrop: true,
+    pinNumber: '001',
+    storyName: 'Rankless'
   },
   {
     id: 'p001',
@@ -19,7 +25,9 @@ const PRODUCTS = [
     image: 'assets/pins/orange.png',
     featured: true,
     description: '',
-    newDrop: true
+    newDrop: true,
+    pinNumber: '001',
+    characterName: 'Orange'
   },
   {
     id: 'p002',
@@ -30,7 +38,9 @@ const PRODUCTS = [
     image: 'assets/pins/orchard.png',
     featured: true,
     description: '',
-    newDrop: true
+    newDrop: true,
+    pinNumber: '002',
+    characterName: 'Orchard'
   },
   {
     id: 'p003',
@@ -41,7 +51,9 @@ const PRODUCTS = [
     image: 'assets/pins/salem.png',
     description: '',
     featured: true,
-    newDrop: true
+    newDrop: true,
+    pinNumber: '003',
+    characterName: 'Salem'
   },
   {
     id: 'p004',
@@ -52,7 +64,9 @@ const PRODUCTS = [
     image: 'assets/pins/apple.png',
     featured: true,
     description: '',
-    newDrop: true
+    newDrop: true,
+    pinNumber: '004',
+    characterName: 'Apple'
   }
 ];
 
@@ -244,25 +258,67 @@ function getBringBackItemsByCampaign(campaignId) {
     });
 }
 
-function productCard(product) {
+// comingSoonCard removed; use productCard(product, true) instead
+
+function getBackerForProduct(product) {
+  if (product.category === 'Story Pins') {
+    return 'assets/StoryBacker2.png';
+  }
+  // No backer for Character Pins or Special Releases
+  return '';
+}
+
+function productCard(product, isComingSoon = false) {
   const soldOut = isSoldOut(product);
+  const backer = getBackerForProduct(product);
+
   return `
-    <article class="card" data-product-id="${product.id}">
-      <div class="art"><img src="${product.image}" alt="${product.name}" loading="lazy" /></div>
-      <div class="card-body">
-        <h3>${product.name}</h3>
-        <p class="card-desc">${product.description}</p>
-        <div class="meta">
-          <span class="tag">${product.category}</span>
-          <span class="price">${currency.format(product.price)}</span>
-        </div>
-        <p class="stock ${soldOut ? 'sold-out-text' : ''}">${soldOut ? 'Sold Out' : `Stock: ${product.stock}`}</p>
-        ${
-          soldOut
-            ? `<button class="btn btn-ghost full btn-bring-back" data-bring-back="${product.id}">Bring it back</button>`
-            : `<button class="btn btn-primary full" data-add="${product.id}">Add to Cart</button>`
-        }
+    <article class="card ${isComingSoon ? 'coming-soon' : ''}" data-product-id="${product.id}">
+      
+
+      <div class="art">
+        ${backer ? `<img class="product-backer" src="${backer}" alt="" aria-hidden="true" />` : ''}
+        <img class="pin-img" src="${product.image}" alt="${product.name}" loading="lazy" />
+        ${(document.body && document.body.classList.contains('collection-page') && (
+          (product.category === 'Character Pins' && product.pinNumber && product.characterName) ||
+          (product.category === 'Story Pins' && product.pinNumber && product.storyName)
+        )) ? `
+          <div class="pin-overlay">
+            <span class="pin-number">${product.pinNumber}</span>
+            <span class="pin-name">${product.characterName || product.storyName}</span>
+          </div>
+        ` : ''}
       </div>
+
+      ${
+        isComingSoon
+          ? `
+          <div class="card-body">
+            <h3>${product.name}</h3>
+          </div>
+        `
+          : `
+          <div class="card-body">
+            <h3>${product.name}</h3>
+            <p class="card-desc">${product.description}</p>
+
+            <div class="meta">
+              <span class="tag">${product.category}</span>
+              <span class="price">${currency.format(product.price)}</span>
+            </div>
+
+            <p class="stock ${soldOut ? 'sold-out-text' : ''}">
+              ${soldOut ? 'Sold Out' : `Stock: ${product.stock}`}
+            </p>
+
+            ${
+              soldOut
+                ? `<button class="btn btn-ghost full btn-bring-back" data-bring-back="${product.id}">Bring it back</button>`
+                : `<button class="btn btn-primary full" data-add="${product.id}">Add to Cart</button>`
+            }
+          </div>
+        `
+      }
     </article>
   `;
 }
@@ -278,6 +334,7 @@ function getFilteredProducts() {
 function renderHomeSections() {
   const featuredRoot = document.querySelector('#featuredGrid');
   const newestRoot = document.querySelector('#newGrid');
+  const newestRoot2 = document.querySelector('#newGrid2');
   const tiersRoot = document.querySelector('#tierGrid');
   const quoteRoot = document.querySelector('#quoteGrid');
   const reviewRoot = document.querySelector('#etsyReviewGrid');
@@ -289,7 +346,11 @@ function renderHomeSections() {
   }
 
   if (newestRoot) {
-    newestRoot.innerHTML = newest.map(productCard).join('');
+    newestRoot.innerHTML = newest.map(product => productCard(product)).join('');
+  }
+
+  if (newestRoot2) {
+    newestRoot2.innerHTML = newest.map(product => productCard(product, true)).join('');
   }
 
   if (tiersRoot) {
@@ -374,67 +435,311 @@ function renderCollection() {
     return;
   }
 
-  collectionRoot.innerHTML = PRODUCTS.map(
-    (product, index) => {
-      // Mark the Story pin (POWNCE #001) with a data attribute
-      const isStory = product.id === 'p000';
-      return `
-        <article class="collection-card" data-product-id="${product.id}"${isStory ? ' data-story-pin="true"' : ''}>
-          <p class="collection-number">#${String(index + 1).padStart(2, '0')}</p>
-          <div class="collection-art"><img src="${product.image}" alt="${product.name}" loading="lazy" /></div>
-          <h3>${product.name}</h3>
-          <p class="card-desc">${product.description}</p>
-        </article>
-      `;
-    }
-  ).join('');
 
-  // Modal logic for Story pin
-  const storyCard = collectionRoot.querySelector('[data-story-pin="true"]');
-  const storyModal = document.getElementById('storyModal');
-  const storyModalImg = document.getElementById('storyModalImg');
-  const carouselNext = document.getElementById('carouselNext');
-  const storyModalClose = document.querySelector('.story-modal-close');
-  let showingFront = true;
-  if (storyCard && storyModal && storyModalImg && carouselNext && storyModalClose) {
-    storyCard.style.cursor = 'pointer';
-    storyCard.addEventListener('click', () => {
-      showingFront = true;
-      storyModalImg.src = 'assets/pins/POWNCE001.png';
-      storyModalImg.alt = 'Rankless Story Enamel Pin';
+  const storyIds = ['p000'];
+  const characterIds = ['p001', 'p002', 'p003', 'p004'];
+  let currentTab = 'story';
+
+  function renderTab(tab) {
+    currentTab = tab;
+    // Update tab highlighting
+    const storyTab = document.getElementById('tabStoryPins');
+    const charTab = document.getElementById('tabCharacterPins');
+    if (storyTab && charTab) {
+      if (tab === 'story') {
+        storyTab.classList.add('active');
+        charTab.classList.remove('active');
+      } else {
+        charTab.classList.add('active');
+        storyTab.classList.remove('active');
+      }
+    }
+    const ids = tab === 'story' ? storyIds : characterIds;
+    const products = PRODUCTS.filter(p => ids.includes(p.id));
+
+    collectionRoot.innerHTML = products.map((p) => productCard(p)).join('');
+    // 🔥 NOW elements exist → safe to bind
+    setupCarouselModals();
+  }
+
+  function setupCarouselModals() {
+    const storyCard = collectionRoot.querySelector('[data-story-pin="true"]');
+    const appleCard = collectionRoot.querySelector('[data-product-id="p004"]');
+    const orangeCard = collectionRoot.querySelector('[data-product-id="p001"]');
+    const orchardCard = collectionRoot.querySelector('[data-product-id="p002"]');
+    const salemCard = collectionRoot.querySelector('[data-product-id="p003"]');
+    const storyModal = document.getElementById('storyModal');
+    const current = document.getElementById('imgCurrent');
+    const next = document.getElementById('imgNext');
+    const carouselNext = document.getElementById('carouselNext');
+    const carouselPrev = document.getElementById('carouselPrev');
+    const storyModalClose = document.querySelector('.story-modal-close');
+
+    // Helper to open modal with given images and alt text
+    function openCarouselModal(images, product) {
+      carouselImages = images;
+      carouselIndex = 0;
+      current.className = 'carousel-img active';
+      next.className = 'carousel-img';
+      current.style.transition = 'none';
+      next.style.transition = 'none';
+      current.style.transform = 'translateX(0)';
+      next.style.transform = 'translateX(100%)';
+      current.src = carouselImages[0].src;
+      current.alt = carouselImages[0].alt;
+
+
+      // Update modal info for the selected pin
+      const title = storyModal.querySelector('.product-title');
+      const desc = storyModal.querySelector('.product-desc');
+      const tag = storyModal.querySelector('.product-tag');
+      const price = storyModal.querySelector('.product-price');
+      const stock = storyModal.querySelector('.product-stock');
+      const modalInfo = storyModal.querySelector('.modal-product-info');
+      if (product) {
+        if (title) title.textContent = product.name;
+        if (desc) desc.textContent = product.description || '';
+        if (tag) tag.textContent = product.category === 'Character Pins' ? 'Character Pin' : 'Story Pin';
+        if (price) price.textContent = currency.format(product.price);
+        const soldOut = isSoldOut(product);
+        if (stock) {
+          stock.textContent = soldOut ? 'Sold Out' : `Stock: ${product.stock}`;
+        }
+        // Add Become a Reader button for story pins
+        if (modalInfo && window.STORY_PIN_URLS) {
+          let readerBtn = modalInfo.querySelector('.btn-reader');
+          if (readerBtn) readerBtn.remove();
+          if (product.category !== 'Character Pins' && window.STORY_PIN_URLS[product.id]) {
+            readerBtn = document.createElement('a');
+            readerBtn.href = window.STORY_PIN_URLS[product.id];
+            readerBtn.target = '_blank';
+            readerBtn.rel = 'noopener noreferrer';
+            readerBtn.className = 'btn btn-reader';
+            readerBtn.title = 'Become a Reader';
+            readerBtn.innerHTML = '<span style="display:none;">Become a Reader</span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7-7-7"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+            // Insert just after the product-tag span and before the product-price span
+            const metaRow = modalInfo.querySelector('.product-meta-row');
+            const tag = metaRow ? metaRow.querySelector('.product-tag') : null;
+            if (metaRow && tag) {
+              tag.insertAdjacentElement('afterend', readerBtn);
+            } else if (metaRow) {
+              metaRow.appendChild(readerBtn);
+            }
+          }
+        }
+      }
+
       storyModal.removeAttribute('hidden');
       document.body.style.overflow = 'hidden';
-    });
-    carouselNext.onclick = () => {
-      if (showingFront) {
-        storyModalImg.src = 'assets/pins/cards/RanklessStoryCardFront.png';
-        storyModalImg.alt = 'Rankless Story Trading Card';
-        showingFront = false;
-      } else {
-        storyModalImg.src = 'assets/pins/POWNCE001.png';
-        storyModalImg.alt = 'Rankless Story Enamel Pin';
-        showingFront = true;
-      }
-    };
-    storyModalClose.onclick = () => {
-      storyModal.setAttribute('hidden', '');
-      document.body.style.overflow = '';
-    };
-    // Close modal on backdrop click
-    storyModal.addEventListener('click', (e) => {
-      if (e.target === storyModal) {
+
+      const addBtn = storyModal.querySelector('.modal-product-info .btn');
+
+      if (!addBtn || !product) return;
+
+        // Clear previous state
+        addBtn.removeAttribute('data-add');
+        addBtn.removeAttribute('data-bring-back');
+        addBtn.classList.remove('btn-ghost', 'btn-primary', 'btn-bring-back');
+        addBtn.disabled = false; // 🔥 ADD THIS
+
+        const soldOut = isSoldOut(product);
+        const hasCampaign = BRING_BACK_CAMPAIGN_MAP[product.id];
+
+        if (soldOut && hasCampaign) {
+          // 🔥 Bring Back state (Orchard, Apple)
+          addBtn.textContent = 'Bring it back';
+          addBtn.classList.add('btn-ghost', 'btn-bring-back');
+          addBtn.setAttribute('data-bring-back', product.id);
+          addBtn.disabled = false;
+
+        } else if (soldOut) {
+          // ❌ Sold out (no campaign)
+          addBtn.textContent = 'Sold Out';
+          addBtn.classList.add('btn-ghost');
+          addBtn.disabled = true;
+
+        } else {
+          // ✅ Normal add to cart
+          addBtn.textContent = 'Add to Cart';
+          addBtn.classList.add('btn-primary');
+          addBtn.setAttribute('data-add', product.id);
+          addBtn.disabled = false;
+    }
+    }
+
+    // Story pin modal
+    if (storyCard && storyModal && current && next && carouselNext && carouselPrev && storyModalClose) {
+      storyCard.style.cursor = 'pointer';
+      storyCard.onclick = () => {
+        openCarouselModal([
+          {
+            src: 'assets/pins/POWNCE001.png',
+            alt: 'Rankless Story Enamel Pin'
+          },
+          {
+            src: 'assets/pins/cards/RanklessStoryCardFront.png',
+            alt: 'Rankless Story Trading Card (Front)'
+          }
+        ], PRODUCTS.find(p => p.id === 'p000'));
+      };
+    }
+
+    // Apple pin modal
+    if (appleCard && storyModal && current && next && carouselNext && carouselPrev && storyModalClose) {
+      appleCard.style.cursor = 'pointer';
+      appleCard.onclick = () => {
+        openCarouselModal([
+          {
+            src: 'assets/pins/apple.png',
+            alt: 'Limited Edition Apple Enamel Pin'
+          },
+          {
+            src: 'assets/pins/cards/AppleCharacterCardFront.png',
+            alt: 'Apple Character Card (Front)'
+          },
+          {
+            src: 'assets/pins/cards/AppleCharacterCardBack.png',
+            alt: 'Apple Character Card (Back)'
+          }
+        ], PRODUCTS.find(p => p.id === 'p004'));
+      };
+    }
+
+    // Orange pin modal
+    if (orangeCard && storyModal && current && next && carouselNext && carouselPrev && storyModalClose) {
+      orangeCard.style.cursor = 'pointer';
+      orangeCard.onclick = () => {
+        openCarouselModal([
+          {
+            src: 'assets/pins/orange.png',
+            alt: 'Limited Edition Orange Enamel Pin'
+          },
+          {
+            src: 'assets/pins/cards/AppleCharacterCardFront.png',
+            alt: 'Character Card (Front)'
+          }
+        ], PRODUCTS.find(p => p.id === 'p001'));
+      };
+    }
+
+    // Orchard pin modal
+    if (orchardCard && storyModal && current && next && carouselNext && carouselPrev && storyModalClose) {
+      orchardCard.style.cursor = 'pointer';
+      orchardCard.onclick = () => {
+        openCarouselModal([
+          {
+            src: 'assets/pins/orchard.png',
+            alt: 'Limited Edition Orchard Enamel Pin'
+          },
+          {
+            src: 'assets/pins/cards/AppleCharacterCardFront.png',
+            alt: 'Character Card (Front)'
+          }
+        ], PRODUCTS.find(p => p.id === 'p002'));
+      };
+    }
+
+    // Salem pin modal
+    if (salemCard && storyModal && current && next && carouselNext && carouselPrev && storyModalClose) {
+      salemCard.style.cursor = 'pointer';
+      salemCard.onclick = () => {
+        openCarouselModal([
+          {
+            src: 'assets/pins/salem.png',
+            alt: 'Limited Edition Salem Enamel Pin'
+          },
+          {
+            src: 'assets/pins/cards/AppleCharacterCardFront.png',
+            alt: 'Character Card (Front)'
+          }
+        ], PRODUCTS.find(p => p.id === 'p003'));
+      };
+    }
+
+    // Carousel navigation (shared)
+    if (carouselNext && carouselPrev && current && next) {
+      carouselNext.onclick = () => {
+        const nextIndex = (carouselIndex + 1) % carouselImages.length;
+        next.src = carouselImages[nextIndex].src;
+        next.alt = carouselImages[nextIndex].alt;
+        next.style.transition = 'none';
+        next.style.transform = 'translateX(100%)';
+        current.style.transition = 'none';
+        current.style.transform = 'translateX(0)';
+        void next.offsetWidth;
+        next.style.transition = 'transform 0.35s ease';
+        current.style.transition = 'transform 0.35s ease';
+        next.style.transform = 'translateX(0)';
+        current.style.transform = 'translateX(-100%)';
+        setTimeout(() => {
+          carouselIndex = nextIndex;
+          current.src = next.src;
+          current.alt = next.alt;
+          current.style.transition = 'none';
+          next.style.transition = 'none';
+          current.style.transform = 'translateX(0)';
+          next.style.transform = 'translateX(100%)';
+        }, 350);
+      };
+      carouselPrev.onclick = () => {
+        const prevIndex = (carouselIndex - 1 + carouselImages.length) % carouselImages.length;
+        next.src = carouselImages[prevIndex].src;
+        next.alt = carouselImages[prevIndex].alt;
+        next.style.transition = 'none';
+        next.style.transform = 'translateX(-100%)';
+        current.style.transition = 'none';
+        current.style.transform = 'translateX(0)';
+        void next.offsetWidth;
+        next.style.transition = 'transform 0.35s ease';
+        current.style.transition = 'transform 0.35s ease';
+        next.style.transform = 'translateX(0)';
+        current.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          carouselIndex = prevIndex;
+          current.src = next.src;
+          current.alt = next.alt;
+          current.style.transition = 'none';
+          next.style.transition = 'none';
+          current.style.transform = 'translateX(0)';
+          next.style.transform = 'translateX(-100%)';
+        }, 350);
+      };
+    }
+
+    // Modal close logic (shared)
+    if (storyModalClose && storyModal) {
+      storyModalClose.onclick = () => {
         storyModal.setAttribute('hidden', '');
         document.body.style.overflow = '';
-      }
-    });
-    // Close modal on Escape key
-    document.addEventListener('keydown', function escListener(evt) {
-      if (!storyModal.hasAttribute('hidden') && evt.key === 'Escape') {
-        storyModal.setAttribute('hidden', '');
-        document.body.style.overflow = '';
-      }
-    });
+      };
+      storyModal.addEventListener('click', (e) => {
+        if (e.target === storyModal) {
+          storyModal.setAttribute('hidden', '');
+          document.body.style.overflow = '';
+        }
+      });
+      document.addEventListener('keydown', function escListener(evt) {
+        if (!storyModal.hasAttribute('hidden') && evt.key === 'Escape') {
+          storyModal.setAttribute('hidden', '');
+          document.body.style.overflow = '';
+        }
+      });
+    }
   }
+
+  // Bind tab click handlers (once)
+  if (!window._collectionTabsBound) {
+    document.getElementById('tabStoryPins').addEventListener('click', function() {
+      renderTab('story');
+    });
+    document.getElementById('tabCharacterPins').addEventListener('click', function() {
+      renderTab('character');
+    });
+    window._collectionTabsBound = true;
+  }
+
+  // Initial render: show Story Pins
+  renderTab('story');
 }
 
 function renderCreatorCampaign(campaign) {
@@ -569,6 +874,10 @@ function openBringBackModal(productId) {
   }
 
   modal.hidden = false;
+}
+
+function handleBringBack(productId) {
+  openBringBackModal(productId);
 }
 
 function closeBringBackModal() {
@@ -806,6 +1115,20 @@ function changeQty(productId, amount) {
   renderCart();
 }
 
+function debugPinNumberPositions() {
+  const cards = document.querySelectorAll('.card .art');
+  cards.forEach((art, i) => {
+    const number = art.querySelector('.pin-number');
+    if (number) {
+      const artRect = art.getBoundingClientRect();
+      const numRect = number.getBoundingClientRect();
+      // console.log(`Card ${i}: art w/h=${artRect.width.toFixed(1)}x${artRect.height.toFixed(1)}, number x/y=${numRect.x.toFixed(1)}/${numRect.y.toFixed(1)}`);
+    }
+  });
+}
+window.addEventListener('resize', debugPinNumberPositions);
+debugPinNumberPositions(); // run on load too
+
 document.addEventListener('click', (event) => {
   const addButton = event.target.closest('[data-add]');
   if (addButton) {
@@ -838,7 +1161,8 @@ document.addEventListener('click', (event) => {
 
   const bringBackButton = event.target.closest('[data-bring-back]');
   if (bringBackButton) {
-    openBringBackModal(bringBackButton.dataset.bringBack);
+    handleBringBack(bringBackButton.dataset.bringBack);
+    return;
   }
 
   const checkoutButton = event.target.closest('#checkoutBtn');
