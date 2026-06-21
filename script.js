@@ -1276,9 +1276,9 @@ if (checkoutForm) {
       return;
     }
     
-    const items = entries.map(([productId, quantity]) => ({
-      pin_id: productId,
-      quantity: quantity
+    const items = entries.map((item) => ({
+      pin_id: item.id,
+      quantity: item.qty
     }));
     
     const firstName = checkoutForm.querySelector('input[name="firstName"]')?.value || '';
