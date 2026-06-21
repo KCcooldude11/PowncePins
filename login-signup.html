@@ -105,13 +105,22 @@
       authMessage.textContent = '';
       const email = document.getElementById('signup-email').value;
       const password = document.getElementById('signup-password').value;
+      
+      // Validate password strength
+      if (password.length < 6) {
+        authMessage.style.color = '#e74c3c';
+        authMessage.textContent = 'Password must be at least 6 characters.';
+        return;
+      }
+      
       const { data, error } = await supabaseClient.auth.signUp({ email, password });
+      console.log('Signup response:', { data, error }); // Debug log
       if (error) {
         authMessage.style.color = '#e74c3c';
         if (error.message && error.message.toLowerCase().includes('user already registered')) {
           authMessage.innerHTML = 'This email is already registered.<br>If you signed up with Google, please use <b>Sign in with Google</b>.';
         } else {
-          authMessage.textContent = error.message;
+          authMessage.textContent = error.message || JSON.stringify(error);
         }
       } else {
         // Try to sign in to detect if the account is already registered (esp. with OAuth)

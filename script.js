@@ -1,4 +1,5 @@
 // Shared carousel state for all modals
+import { supabase } from './supabaseClient.js';
 
 let carouselImages = [];
 let carouselIndex = 0;
@@ -14,11 +15,12 @@ const PRODUCTS = [
     description: 'Rankless is a graphic novel. This is the March Pick.',
     newDrop: true,
     pinNumber: '001',
-    storyName: 'Rankless'
+    storyName: 'Rankless',
+    needsBacker: false
   },
   {
     id: 'p001',
-    name: 'Limited Edition Orange Enamel Pin',
+    name: 'Orange Enamel Pin',
     category: 'Character Pins',
     price: 18,
     stock: 22,
@@ -31,7 +33,7 @@ const PRODUCTS = [
   },
   {
     id: 'p002',
-    name: 'Limited Edition Orchard Enamel Pin',
+    name: 'Orchard Enamel Pin',
     category: 'Character Pins',
     price: 18,
     stock: 0,
@@ -44,7 +46,7 @@ const PRODUCTS = [
   },
   {
     id: 'p003',
-    name: 'Limited Edition Salem Enamel Pin',
+    name: 'Salem Enamel Pin',
     category: 'Character Pins',
     price: 18,
     stock: 18,
@@ -57,7 +59,7 @@ const PRODUCTS = [
   },
   {
     id: 'p004',
-    name: 'Limited Edition Apple Enamel Pin',
+    name: 'Apple Enamel Pin',
     category: 'Character Pins',
     price: 18,
     stock: 0,
@@ -206,6 +208,8 @@ const CREATOR_CAMPAIGNS = [
   }
 ];
 
+
+
 const QUOTE_STYLE_MODIFIERS = {
   'soft-enamel': 1,
   'hard-enamel': 1.08,
@@ -261,7 +265,7 @@ function getBringBackItemsByCampaign(campaignId) {
 // comingSoonCard removed; use productCard(product, true) instead
 
 function getBackerForProduct(product) {
-  if (product.category === 'Story Pins') {
+  if (product.category === 'Story Pins' && product.needsBacker !== false) {
     return 'assets/StoryBacker2.png';
   }
   // No backer for Character Pins or Special Releases
@@ -272,52 +276,51 @@ function productCard(product, isComingSoon = false) {
   const soldOut = isSoldOut(product);
   const backer = getBackerForProduct(product);
 
+  // Add data-story-pin="true" for Rankless Story Pin (id: p000)
+  const isRanklessStoryPin = product.id === 'p000' && product.category === 'Story Pins';
   return `
-    <article class="card ${isComingSoon ? 'coming-soon' : ''}" data-product-id="${product.id}">
-      
-
+    <article class="card ${isComingSoon ? 'coming-soon' : ''}" data-product-id="${product.id}"${isRanklessStoryPin ? ' data-story-pin="true"' : ''}>
       <div class="art">
         ${backer ? `<img class="product-backer" src="${backer}" alt="" aria-hidden="true" />` : ''}
         <img class="pin-img" src="${product.image}" alt="${product.name}" loading="lazy" />
-        ${(document.body && document.body.classList.contains('collection-page') && (
-          (product.category === 'Character Pins' && product.pinNumber && product.characterName) ||
-          (product.category === 'Story Pins' && product.pinNumber && product.storyName)
-        )) ? `
+        ${(document.body && document.body.classList.contains('collection-page') && product.pinNumber) ? `
           <div class="pin-overlay">
             <span class="pin-number">${product.pinNumber}</span>
-            <span class="pin-name">${product.characterName || product.storyName}</span>
           </div>
         ` : ''}
       </div>
 
       ${
-        isComingSoon
+        document.body && document.body.classList.contains('collection-page')
           ? `
-          <div class="card-body">
-            <h3>${product.name}</h3>
-          </div>
-        `
-          : `
-          <div class="card-body">
-            <h3>${product.name}</h3>
-            <p class="card-desc">${product.description}</p>
-
-            <div class="meta">
-              <span class="tag">${product.category}</span>
-              <span class="price">${currency.format(product.price)}</span>
+            <div class="card-body">
+              <h3>${product.name}</h3>
             </div>
-
-            <p class="stock ${soldOut ? 'sold-out-text' : ''}">
-              ${soldOut ? 'Sold Out' : `Stock: ${product.stock}`}
-            </p>
-
-            ${
-              soldOut
-                ? `<button class="btn btn-ghost full btn-bring-back" data-bring-back="${product.id}">Bring it back</button>`
-                : `<button class="btn btn-primary full" data-add="${product.id}">Add to Cart</button>`
-            }
-          </div>
-        `
+          `
+          : isComingSoon
+            ? `
+              <div class="card-body">
+                <h3>${product.name}</h3>
+              </div>
+            `
+            : `
+              <div class="card-body">
+                <h3>${product.name}</h3>
+                <p class="card-desc">${product.description}</p>
+                <div class="meta">
+                  <span class="tag">${product.category}</span>
+                  <span class="price">${currency.format(product.price)}</span>
+                </div>
+                <p class="stock ${soldOut ? 'sold-out-text' : ''}">
+                  ${soldOut ? 'Sold Out' : `Stock: ${product.stock}`}
+                </p>
+                ${
+                  soldOut
+                    ? `<button class="btn btn-ghost full btn-bring-back" data-bring-back="${product.id}">Bring it back</button>`
+                    : `<button class="btn btn-primary full" data-add="${product.id}">Add to Cart</button>`
+                }
+              </div>
+            `
       }
     </article>
   `;
@@ -490,81 +493,82 @@ function renderCollection() {
 
 
       // Update modal info for the selected pin
-      const title = storyModal.querySelector('.product-title');
-      const desc = storyModal.querySelector('.product-desc');
-      const tag = storyModal.querySelector('.product-tag');
-      const price = storyModal.querySelector('.product-price');
-      const stock = storyModal.querySelector('.product-stock');
       const modalInfo = storyModal.querySelector('.modal-product-info');
-      if (product) {
-        if (title) title.textContent = product.name;
+      if (product && modalInfo) {
+        // Rebuild the title row with flex: title left, button right
+        let titleRow = modalInfo.querySelector('.product-title-row');
+        if (!titleRow) {
+          // Remove old title and button if present
+          let oldTitle = modalInfo.querySelector('.product-title');
+          let oldBtn = modalInfo.querySelector('.btn-reader');
+          if (oldTitle) oldTitle.remove();
+          if (oldBtn) oldBtn.remove();
+          titleRow = document.createElement('div');
+          titleRow.className = 'product-title-row';
+          modalInfo.prepend(titleRow);
+        }
+        titleRow.innerHTML = '';
+        const titleEl = document.createElement('h2');
+        titleEl.className = 'product-title';
+        titleEl.textContent = product.name;
+        titleRow.appendChild(titleEl);
+        // Add Become a Reader button if needed
+        let readerBtn = null;
+        if (product.category !== 'Character Pins' && window.STORY_PIN_URLS && window.STORY_PIN_URLS[product.id]) {
+          readerBtn = document.createElement('a');
+          readerBtn.href = window.STORY_PIN_URLS[product.id];
+          readerBtn.target = '_blank';
+          readerBtn.rel = 'noopener noreferrer';
+          readerBtn.className = 'btn btn-reader';
+          readerBtn.title = 'Become a Reader';
+          readerBtn.innerHTML = 'Become a Reader <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7-7-7"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+          titleRow.appendChild(readerBtn);
+        }
+        // Update rest of modal info
+        const desc = modalInfo.querySelector('.product-desc');
         if (desc) desc.textContent = product.description || '';
+        const tag = modalInfo.querySelector('.product-tag');
         if (tag) tag.textContent = product.category === 'Character Pins' ? 'Character Pin' : 'Story Pin';
+        const price = modalInfo.querySelector('.product-price');
         if (price) price.textContent = currency.format(product.price);
+        const stock = modalInfo.querySelector('.product-stock');
         const soldOut = isSoldOut(product);
         if (stock) {
           stock.textContent = soldOut ? 'Sold Out' : `Stock: ${product.stock}`;
-        }
-        // Add Become a Reader button for story pins
-        if (modalInfo && window.STORY_PIN_URLS) {
-          let readerBtn = modalInfo.querySelector('.btn-reader');
-          if (readerBtn) readerBtn.remove();
-          if (product.category !== 'Character Pins' && window.STORY_PIN_URLS[product.id]) {
-            readerBtn = document.createElement('a');
-            readerBtn.href = window.STORY_PIN_URLS[product.id];
-            readerBtn.target = '_blank';
-            readerBtn.rel = 'noopener noreferrer';
-            readerBtn.className = 'btn btn-reader';
-            readerBtn.title = 'Become a Reader';
-            readerBtn.innerHTML = '<span style="display:none;">Become a Reader</span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7-7-7"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-            // Insert just after the product-tag span and before the product-price span
-            const metaRow = modalInfo.querySelector('.product-meta-row');
-            const tag = metaRow ? metaRow.querySelector('.product-tag') : null;
-            if (metaRow && tag) {
-              tag.insertAdjacentElement('afterend', readerBtn);
-            } else if (metaRow) {
-              metaRow.appendChild(readerBtn);
-            }
-          }
         }
       }
 
       storyModal.removeAttribute('hidden');
       document.body.style.overflow = 'hidden';
 
-      const addBtn = storyModal.querySelector('.modal-product-info .btn');
-
+      // Only show Add to Cart/Bring Back for Character Pins
+      const addBtn = storyModal.querySelector('.modal-product-info .btn.full:not(.btn-reader)');
       if (!addBtn || !product) return;
 
-        // Clear previous state
-        addBtn.removeAttribute('data-add');
-        addBtn.removeAttribute('data-bring-back');
-        addBtn.classList.remove('btn-ghost', 'btn-primary', 'btn-bring-back');
-        addBtn.disabled = false; // 🔥 ADD THIS
+      // Clear previous state
+      addBtn.removeAttribute('data-add');
+      addBtn.removeAttribute('data-bring-back');
+      addBtn.classList.remove('btn-ghost', 'btn-primary', 'btn-bring-back');
+      addBtn.disabled = false;
 
-        const soldOut = isSoldOut(product);
-        const hasCampaign = BRING_BACK_CAMPAIGN_MAP[product.id];
+      const soldOut = isSoldOut(product);
+      const hasCampaign = BRING_BACK_CAMPAIGN_MAP[product.id];
 
-        if (soldOut && hasCampaign) {
-          // 🔥 Bring Back state (Orchard, Apple)
-          addBtn.textContent = 'Bring it back';
-          addBtn.classList.add('btn-ghost', 'btn-bring-back');
-          addBtn.setAttribute('data-bring-back', product.id);
-          addBtn.disabled = false;
-
-        } else if (soldOut) {
-          // ❌ Sold out (no campaign)
-          addBtn.textContent = 'Sold Out';
-          addBtn.classList.add('btn-ghost');
-          addBtn.disabled = true;
-
-        } else {
-          // ✅ Normal add to cart
-          addBtn.textContent = 'Add to Cart';
-          addBtn.classList.add('btn-primary');
-          addBtn.setAttribute('data-add', product.id);
-          addBtn.disabled = false;
-    }
+      if (soldOut && hasCampaign) {
+        addBtn.textContent = 'Bring it back';
+        addBtn.classList.add('btn-ghost', 'btn-bring-back');
+        addBtn.setAttribute('data-bring-back', product.id);
+        addBtn.disabled = false;
+      } else if (soldOut) {
+        addBtn.textContent = 'Sold Out';
+        addBtn.classList.add('btn-ghost');
+        addBtn.disabled = true;
+      } else {
+        addBtn.textContent = 'Add to Cart';
+        addBtn.classList.add('btn-primary');
+        addBtn.setAttribute('data-add', product.id);
+        addBtn.disabled = false;
+      }
     }
 
     // Story pin modal
@@ -964,6 +968,8 @@ function initBringBackModal() {
   });
 }
 
+
+
 function getUnitPrice(quantity) {
   if (quantity >= 200) {
     return 4.98;
@@ -1254,10 +1260,72 @@ if (checkoutForm) {
     radio.addEventListener('change', updateTotal);
   });
 
-  checkoutForm.addEventListener('submit', (event) => {
+  checkoutForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    alert('Order placed successfully! Thank you for your purchase.');
-    checkoutForm.reset();
+    
+    // Get current user session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      alert('Please log in to place an order.');
+      window.location.href = 'login-signup.html';
+      return;
+    }
+    
+    // Prepare order data
+    const entries = getCartEntries();
+    if (entries.length === 0) {
+      alert('Your cart is empty.');
+      return;
+    }
+    
+    const items = entries.map(([productId, quantity]) => {
+      const product = PRODUCTS.find(p => p.id === productId);
+      return {
+        pin_id: productId,
+        quantity: quantity,
+        price_at_purchase: parseFloat(product.price)
+      };
+    });
+    
+    const firstName = checkoutForm.querySelector('input[name="firstName"]')?.value || '';
+    const lastName = checkoutForm.querySelector('input[name="lastName"]')?.value || '';
+    const email = checkoutForm.querySelector('input[name="email"]')?.value || '';
+    const address = checkoutForm.querySelector('input[name="address"]')?.value || '';
+    const city = checkoutForm.querySelector('input[name="city"]')?.value || '';
+    const state = checkoutForm.querySelector('input[name="state"]')?.value || '';
+    const zip = checkoutForm.querySelector('input[name="zip"]')?.value || '';
+    
+    const shippingAddress = { firstName, lastName, email, address, city, state, zip };
+    
+    try {
+      // Call Supabase Edge Function to create order
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: {
+          items: items,
+          shippingAddress: shippingAddress
+        }
+      });
+      
+      if (error) {
+        alert('Error creating order: ' + (error.message || 'Unknown error'));
+        return;
+      }
+      
+      if (data && data.orderId) {
+        // Clear cart and show success
+        state.cart = {};
+        saveCart();
+        alert('Order placed successfully! Thank you for your purchase.');
+        checkoutForm.reset();
+        setTimeout(() => window.location.href = 'index.html', 1500);
+      } else if (data && data.stripeUrl) {
+        // Redirect to Stripe (when payment integration is ready)
+        window.location.href = data.stripeUrl;
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      alert('Error processing order. Please try again.');
+    }
   });
 
   // Format card number input
@@ -1285,6 +1353,8 @@ if (checkoutForm) {
   // Initialize total calculation
   updateTotal();
 }
+
+
 
 renderHomeSections();
 renderShop();
