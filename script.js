@@ -1,6 +1,4 @@
 // Shared carousel state for all modals
-import { supabase } from './supabaseClient.js';
-
 let carouselImages = [];
 let carouselIndex = 0;
 const PRODUCTS = [
@@ -1278,14 +1276,10 @@ if (checkoutForm) {
       return;
     }
     
-    const items = entries.map(([productId, quantity]) => {
-      const product = PRODUCTS.find(p => p.id === productId);
-      return {
-        pin_id: productId,
-        quantity: quantity,
-        price_at_purchase: parseFloat(product.price)
-      };
-    });
+    const items = entries.map(([productId, quantity]) => ({
+      pin_id: productId,
+      quantity: quantity
+    }));
     
     const firstName = checkoutForm.querySelector('input[name="firstName"]')?.value || '';
     const lastName = checkoutForm.querySelector('input[name="lastName"]')?.value || '';
@@ -1318,6 +1312,11 @@ if (checkoutForm) {
         alert('Order placed successfully! Thank you for your purchase.');
         checkoutForm.reset();
         setTimeout(() => window.location.href = 'index.html', 1500);
+      } else if (data && data.message) {
+        state.cart = {};
+        saveCart();
+        alert(data.message);
+        checkoutForm.reset();
       } else if (data && data.stripeUrl) {
         // Redirect to Stripe (when payment integration is ready)
         window.location.href = data.stripeUrl;

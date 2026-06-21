@@ -74,18 +74,30 @@ Deno.serve(async (req) => {
     // Create a map of pin prices for validation
     const pinPriceMap = new Map(pins.map((p: any) => [p.id, p.price]));
 
-    // Validate all items have matching prices
+    // Validate all items and calculate total from database prices only
     let totalPrice = 0;
     const validatedItems = items.map((item: any) => {
       const dbPrice = pinPriceMap.get(item.pin_id);
-      if (!dbPrice) {
+      if (dbPrice === undefined || dbPrice === null) {
         throw new Error(`Pin ${item.pin_id} not found`);
       }
-      if (Math.abs(parseFloat(dbPrice) - parseFloat(item.price_at_purchase)) > 0.01) {
-        throw new Error(`Price mismatch for pin ${item.pin_id}`);
+
+      const quantity = Number(item.quantity);
+      if (!Number.isFinite(quantity) || quantity < 1) {
+        throw new Error(`Invalid quantity for pin ${item.pin_id}`);
       }
-      totalPrice += parseFloat(dbPrice) * item.quantity;
-      return { ...item, price_at_purchase: dbPrice };
+
+      const price = Number(dbPrice);
+      if (!Number.isFinite(price)) {
+        throw new Error(`Invalid database price for pin ${item.pin_id}`);
+      }
+
+      totalPrice += price * quantity;
+      return {
+        pin_id: item.pin_id,
+        quantity,
+        price_at_purchase: price,
+      };
     });
 
     // Create order (header)
@@ -122,6 +134,7 @@ Deno.serve(async (req) => {
 
     if (itemsError) {
       console.error("Order items error:", itemsError);
+      await supabaseAdmin.from("orders").delete().eq("id", order.id);
       return new Response(
         JSON.stringify({ error: "Failed to create order items" }),
         { status: 500, headers: corsHeaders }
