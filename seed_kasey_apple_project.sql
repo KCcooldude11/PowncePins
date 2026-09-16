@@ -32,7 +32,7 @@ where not exists (
 update public.creator_products
 set product_title = 'Apple Pin v1',
     product_handle = 'applev1',
-  image_url = 'http://localhost:8000/assets/pins/apple.png',
+    image_url = 'https://powncepins.netlify.app/assets/pins/apple.png',
     price = 18.00,
     inventory_count = 31,
     status = 'active',
