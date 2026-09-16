@@ -13,7 +13,10 @@ export const handler: Handler = async (event) => {
     const accessToken = authorization.replace(/^Bearer\s+/i, "");
     if (!accessToken) return json({ error: "Unauthorized" }, 401);
 
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseUrl = getValidSupabaseUrl(
+      process.env.SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+    );
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !serviceRoleKey) {
       console.error("Creator summary is missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
@@ -70,3 +73,19 @@ export const handler: Handler = async (event) => {
     }, 500);
   }
 };
+
+function getValidSupabaseUrl(...candidates: Array<string | undefined>) {
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      const url = new URL(candidate.trim());
+      if (url.protocol === "https:" && url.hostname.endsWith(".supabase.co")) {
+        return url.toString().replace(/\/$/, "");
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
