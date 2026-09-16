@@ -259,47 +259,6 @@ const FAQ_ITEMS = [
   }
 ];
 
-const CREATOR_CAMPAIGNS = [
-  {
-    id: 'rachel-rankless',
-    creatorName: 'Rachel • Rankless',
-    pinName: 'Salem Limited Run',
-    saleWindow: 'Feb 20, 2026 - Mar 20, 2026',
-    unitsSold: 184,
-    grossSales: 3312,
-    conversionRate: 6.8,
-    avgOrderValue: 21.7,
-    repeatCustomers: 42,
-    dailySales: [14, 22, 19, 28, 31, 35, 35]
-  },
-  {
-    id: 'orchard-guild',
-    creatorName: 'Orchard Guild',
-    pinName: 'Orchard Character Drop',
-    saleWindow: 'Feb 25, 2026 - Mar 18, 2026',
-    unitsSold: 126,
-    grossSales: 2268,
-    conversionRate: 5.2,
-    avgOrderValue: 19.9,
-    repeatCustomers: 27,
-    dailySales: [10, 14, 15, 20, 21, 23, 23]
-  },
-  {
-    id: 'apple-core',
-    creatorName: 'Apple Core Studio',
-    pinName: 'Apple Rose Gold Pin',
-    saleWindow: 'Feb 15, 2026 - Mar 15, 2026',
-    unitsSold: 96,
-    grossSales: 1728,
-    conversionRate: 4.4,
-    avgOrderValue: 18.6,
-    repeatCustomers: 18,
-    dailySales: [7, 9, 13, 14, 15, 18, 20]
-  }
-];
-
-
-
 const QUOTE_STYLE_MODIFIERS = {
   'soft-enamel': 1,
   'hard-enamel': 1.08,
@@ -992,115 +951,6 @@ function renderCollection() {
   }
 }
 
-function renderCreatorCampaign(campaign) {
-  const campaignName = document.querySelector('#campaignName');
-  const campaignWindow = document.querySelector('#campaignWindow');
-  const analyticsCards = document.querySelector('#analyticsCards');
-  const trendBars = document.querySelector('#trendBars');
-  const bringBackRequestsRoot = document.querySelector('#bringBackRequests');
-
-  if (!campaignName || !campaignWindow || !analyticsCards || !trendBars) {
-    return;
-  }
-
-  const bringBackCount = getBringBackCountByCampaign(campaign.id);
-  const campaignBringBackRequests = getBringBackItemsByCampaign(campaign.id);
-
-  campaignName.textContent = `${campaign.creatorName} • ${campaign.pinName}`;
-  campaignWindow.textContent = campaign.saleWindow;
-
-  analyticsCards.innerHTML = `
-    <article class="panel analytic-card">
-      <p class="metric-label">Units Sold</p>
-      <h3>${campaign.unitsSold}</h3>
-    </article>
-    <article class="panel analytic-card">
-      <p class="metric-label">Gross Sales</p>
-      <h3>${currency.format(campaign.grossSales)}</h3>
-    </article>
-    <article class="panel analytic-card">
-      <p class="metric-label">Conversion</p>
-      <h3>${campaign.conversionRate}%</h3>
-    </article>
-    <article class="panel analytic-card">
-      <p class="metric-label">Avg Order Value</p>
-      <h3>${currency.format(campaign.avgOrderValue)}</h3>
-    </article>
-    <article class="panel analytic-card">
-      <p class="metric-label">Repeat Customers</p>
-      <h3>${campaign.repeatCustomers}</h3>
-    </article>
-    <article class="panel analytic-card">
-      <p class="metric-label">Bring-Back Requests</p>
-      <h3>${bringBackCount}</h3>
-    </article>
-  `;
-
-  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const maxSales = Math.max(...campaign.dailySales, 1);
-  trendBars.innerHTML = campaign.dailySales
-    .map(
-      (value, index) => `
-      <article class="trend-bar-card">
-        <p class="day-label">${dayNames[index]}</p>
-        <div class="trend-track">
-          <span class="trend-fill" style="height:${Math.max(12, (value / maxSales) * 100)}%"></span>
-        </div>
-        <strong class="day-value">${value}</strong>
-      </article>
-    `
-    )
-    .join('');
-
-  if (bringBackRequestsRoot) {
-    if (!campaignBringBackRequests.length) {
-      bringBackRequestsRoot.innerHTML = '<p class="request-empty">No bring-back requests yet.</p>';
-      return;
-    }
-
-    bringBackRequestsRoot.innerHTML = campaignBringBackRequests
-      .slice(0, 8)
-      .map(
-        (request) => `
-        <article class="request-item">
-          <div>
-            <h4>${request.productName}</h4>
-            <p>${request.email}</p>
-          </div>
-          <span>${new Date(request.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-        </article>
-      `
-      )
-      .join('');
-  }
-}
-
-function renderCreatorPortal() {
-  const creatorSelect = document.querySelector('#creatorSelect');
-  if (!creatorSelect) {
-    return;
-  }
-
-  const previousValue = creatorSelect.value;
-  creatorSelect.innerHTML = CREATOR_CAMPAIGNS.map(
-    (campaign) => `<option value="${campaign.id}">${campaign.creatorName}</option>`
-  ).join('');
-
-  const initialCampaign =
-    CREATOR_CAMPAIGNS.find((campaign) => campaign.id === previousValue) || CREATOR_CAMPAIGNS[0];
-  if (initialCampaign) {
-    creatorSelect.value = initialCampaign.id;
-    renderCreatorCampaign(initialCampaign);
-  }
-
-  creatorSelect.addEventListener('change', () => {
-    const selectedCampaign = CREATOR_CAMPAIGNS.find((campaign) => campaign.id === creatorSelect.value);
-    if (selectedCampaign) {
-      renderCreatorCampaign(selectedCampaign);
-    }
-  });
-}
-
 function openBringBackModal(productId) {
   const modal = document.querySelector('#bringBackModal');
   if (!modal) {
@@ -1203,14 +1053,6 @@ function initBringBackModal() {
     });
     saveBringBackRequests();
     bringBackMessage.textContent = 'Request received. The creator has been notified and your email is on the list.';
-
-    const creatorSelect = document.querySelector('#creatorSelect');
-    if (creatorSelect) {
-      const selectedCampaign = CREATOR_CAMPAIGNS.find((campaign) => campaign.id === creatorSelect.value);
-      if (selectedCampaign) {
-        renderCreatorCampaign(selectedCampaign);
-      }
-    }
   });
 }
 
@@ -1654,7 +1496,6 @@ renderHomeSections();
 renderShop();
 renderFaq();
 renderCollection();
-renderCreatorPortal();
 bindQuoteForm();
 renderCart();
 initBringBackModal();

@@ -4,10 +4,9 @@ function formatPortalCurrency(value) {
 
 function renderPortalSummary(summary) {
   const products = summary.products || [];
-  const royalties = summary.royaltyDetails || [];
   const salesByProduct = new Map();
 
-  royalties.forEach((row) => {
+  (summary.royaltyDetails || []).forEach((row) => {
     const current = salesByProduct.get(row.shopify_product_id) || { units: 0, revenue: 0, royalty: 0 };
     current.units += Number(row.units_sold || 0);
     current.revenue += Number(row.revenue || 0);
@@ -19,9 +18,9 @@ function renderPortalSummary(summary) {
   const campaignName = document.querySelector('#campaignName');
   const campaignWindow = document.querySelector('#campaignWindow');
   const analyticsCards = document.querySelector('#analyticsCards');
-  const trendBars = document.querySelector('#trendBars');
-  const requests = document.querySelector('#bringBackRequests');
-  const productList = document.querySelector('#portalProductList');
+  const projectArt = document.querySelector('#projectArt');
+  const projectArtPlaceholder = document.querySelector('#projectArtPlaceholder');
+  const projectStatus = document.querySelector('#projectStatus');
 
   creatorSelect.innerHTML = products.map((product) => (
     `<option value="${product.shopify_product_id}">${product.product_title || 'Untitled product'}</option>`
@@ -29,24 +28,50 @@ function renderPortalSummary(summary) {
 
   const renderProduct = (productId) => {
     const product = products.find((item) => item.shopify_product_id === productId) || products[0];
-    if (!product) return;
+    if (!product) {
+      campaignName.textContent = 'No connected projects yet';
+      campaignWindow.textContent = 'Your first collaboration will appear here.';
+      analyticsCards.innerHTML = '';
+      projectStatus.textContent = 'Not connected';
+      projectArt.hidden = true;
+      projectArtPlaceholder.hidden = false;
+      return;
+    }
+
     const stats = salesByProduct.get(product.shopify_product_id) || { units: 0, revenue: 0, royalty: 0 };
     campaignName.textContent = product.product_title || 'Untitled product';
     campaignWindow.textContent = `${product.status || 'Active'} · ${product.inventory_count ?? 0} in inventory`;
+    projectStatus.textContent = product.status || 'Live';
+    if (product.image_url) {
+      projectArt.src = product.image_url;
+      projectArt.alt = product.product_title || 'Creator project';
+      projectArt.hidden = false;
+      projectArtPlaceholder.hidden = true;
+    } else {
+      projectArt.hidden = true;
+      projectArtPlaceholder.hidden = false;
+    }
     analyticsCards.innerHTML = `
-      <article class="panel analytic-card"><p class="metric-label">Units Sold</p><h3>${stats.units}</h3></article>
-      <article class="panel analytic-card"><p class="metric-label">Gross Sales</p><h3>${formatPortalCurrency(stats.revenue)}</h3></article>
-      <article class="panel analytic-card"><p class="metric-label">Your Royalty</p><h3>${formatPortalCurrency(stats.royalty)}</h3></article>`;
-    trendBars.innerHTML = '<p class="request-empty">Sales trend data will appear as orders are recorded.</p>';
+      <div class="project-metric"><span>Sales</span><strong>${formatPortalCurrency(stats.revenue)}</strong></div>
+      <div class="project-metric"><span>Units sold</span><strong>${stats.units}</strong></div>
+      <div class="project-metric"><span>Inventory</span><strong>${product.inventory_count ?? 0}</strong></div>
+      <div class="project-metric"><span>Your royalty</span><strong>${formatPortalCurrency(stats.royalty)}</strong></div>`;
   };
 
   creatorSelect.addEventListener('change', () => renderProduct(creatorSelect.value));
   renderProduct(creatorSelect.value);
-  requests.innerHTML = '<p class="request-empty">No bring-back requests are connected to the creator dashboard yet.</p>';
-  productList.innerHTML = products.map((product) => (
-    `<li><strong>${product.product_title || 'Untitled product'}</strong> - Inventory: ${product.inventory_count ?? 0} - Status: ${product.status || 'Active'}</li>`
+  document.querySelector('#grossSales').textContent = formatPortalCurrency(summary.royalties?.grossSales);
+  document.querySelector('#pendingRoyalty').textContent = formatPortalCurrency(summary.royalties?.pendingRoyalty);
+  document.querySelector('#paidRoyalty').textContent = formatPortalCurrency(summary.royalties?.paidRoyalty);
+  document.querySelector('#productCount').textContent = String(products.length);
+  document.querySelector('#portalProductList').innerHTML = products.map((product) => (
+    `<li><strong>${product.product_title || 'Untitled product'}</strong> · Inventory: ${product.inventory_count ?? 0} · Status: ${product.status || 'Active'}</li>`
   )).join('') || '<li>No products are connected yet.</li>';
-  document.querySelector('#portalStatus').textContent = `Welcome, ${summary.creator.name}. Data is loaded from Supabase.`;
+  document.querySelector('#productionList').innerHTML = (summary.production || []).map((entry) => (
+    `<li><strong>${entry.shopify_product_id}</strong> · ${entry.stage} · ${entry.notes || entry.status || 'Updated'}</li>`
+  )).join('') || '<li>No production updates yet.</li>';
+  document.querySelector('#portalWelcome').textContent = `Welcome, ${summary.creator.name}`;
+  document.querySelector('#portalStatus').textContent = 'Your latest sales and collaboration data from Supabase.';
   document.querySelector('#creatorPortalApp').hidden = false;
 }
 
@@ -70,6 +95,11 @@ async function loadCreatorPortal() {
 
   renderPortalSummary(await response.json());
 }
+
+document.querySelector('#portalLogout').addEventListener('click', async () => {
+  await window.supabase.auth.signOut();
+  window.location.replace('index.html');
+});
 
 window.addEventListener('load', () => loadCreatorPortal().catch(() => {
   document.querySelector('#portalStatus').textContent = 'The creator portal could not load right now.';

@@ -4,89 +4,76 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pownce Pins | Creator Portal</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="portal.css" />
   </head>
-  <body class="content-page">
-    <header class="site-header">
-      <nav class="nav shell">
-        <a class="brand" href="index.html" aria-label="Pownce Pins home">
-          <img class="nav-logo" src="assets/pins/Logo.png" alt="Pownce Pins logo" />
-        </a>
-        <div class="nav-links">
-          <a href="index.html">Home</a>
-          <!-- <a href="shop.html">Shop</a> -->
-          <a href="collection.html">Collection</a>
-          <a href="quote.html">Bulk Quote</a>
-          <a href="collaborate.html">Collaborate</a>
+  <body class="portal-page">
+    <main class="portal-shell">
+      <div class="portal-container">
+        <header class="portal-header">
+          <div>
+            <a class="portal-brand" href="index.html">POWNCE PINS</a>
+            <span class="portal-badge">Creator dashboard</span>
+            <h1 id="portalWelcome">Welcome back</h1>
+            <p id="portalStatus" class="portal-muted">Loading your creator data...</p>
+          </div>
+          <div class="portal-actions">
+            <a class="portal-btn portal-btn-secondary" href="index.html">Back to store</a>
+            <button id="portalLogout" class="portal-btn" type="button">Log out</button>
+          </div>
+        </header>
 
-        </div>
-        <a class="account-btn" href="login-signup.html">Account</a>
-        <button id="cartToggle" class="cart-btn">Cart <span id="cartCount">0</span></button>
-      </nav>
-    </header>
+        <section class="project-picker portal-panel" id="creatorPortalApp" hidden>
+          <div class="project-picker-header">
+            <div>
+              <span class="portal-badge">Your collaborations</span>
+              <h2>Choose a project</h2>
+              <p class="portal-muted">Select a pin to view its sales, inventory, and royalty snapshot.</p>
+            </div>
+            <label class="project-select-wrap" for="creatorSelect">
+              <span>Project</span>
+              <select id="creatorSelect" class="portal-input"></select>
+            </label>
+          </div>
 
-    <main class="page shell" id="creatorPortalApp" hidden>
-      <section class="section panel">
-        <h2>Creator Sale Portal</h2>
-        <p class="lead" id="portalStatus">Loading your creator data...</p>
-      </section>
+          <div class="project-showcase">
+            <div class="project-art-frame">
+              <img id="projectArt" class="project-art" alt="" hidden />
+              <div id="projectArtPlaceholder" class="project-art-placeholder">Your project</div>
+            </div>
+            <div class="project-details">
+              <div class="project-title-row">
+                <div>
+                  <span id="projectStatus" class="portal-badge">Loading</span>
+                  <h3 id="campaignName">Your project</h3>
+                </div>
+                <span class="project-id">LIVE</span>
+              </div>
+              <p id="campaignWindow" class="portal-muted"></p>
+              <div id="analyticsCards" class="project-metric-grid"></div>
+            </div>
+          </div>
+        </section>
 
-      <section class="section split portal-layout">
-        <aside class="panel">
-          <h3>Campaign Selector</h3>
-          <label for="creatorSelect" style="font-weight: 600; font-size: 0.95rem;">Select Your Campaign</label>
-          <select id="creatorSelect" class="portal-select"></select>
-          <p class="lead" style="margin-top: 0.8rem; font-size: 0.875rem;"> Data updates every 24 hours in this demo portal.</p>
-        </aside>
-        <div class="panel">
-          <h3 id="campaignName" style="font-size: 1.5rem; margin-bottom: 0.25rem;">-</h3>
-          <p id="campaignWindow" class="lead" style="font-size: 0.95rem; color: var(--muted);">-</p>
-          
-          <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem; font-size: 1.25rem;"> Performance Metrics</h3>
-          <div id="analyticsCards" class="analytics-grid"></div>
-          
-          <h3 style="margin-top: 2rem; margin-bottom: 0.5rem; font-size: 1.25rem;"> Weekly Sales Trend</h3>
-          <div id="trendBars" class="trend-bars"></div>
-          
-          <h3 style="margin-top: 2rem; margin-bottom: 0.5rem; font-size: 1.25rem;"> Bring-Back Requests</h3>
-          <div id="bringBackRequests" class="request-list"></div>
-        </div>
-      </section>
+        <section class="portal-stat-grid" aria-label="Royalty summary">
+          <div class="portal-stat"><div class="portal-stat-label">Gross sales</div><div id="grossSales" class="portal-stat-value">$0.00</div></div>
+          <div class="portal-stat"><div class="portal-stat-label">Pending royalty</div><div id="pendingRoyalty" class="portal-stat-value">$0.00</div></div>
+          <div class="portal-stat"><div class="portal-stat-label">Paid royalty</div><div id="paidRoyalty" class="portal-stat-value">$0.00</div></div>
+          <div class="portal-stat"><div class="portal-stat-label">Products</div><div id="productCount" class="portal-stat-value">0</div></div>
+        </section>
 
-      <section class="section panel">
-        <h3>Connected Products</h3>
-        <ul id="portalProductList" class="request-list"></ul>
-      </section>
+        <section class="portal-panel">
+          <h2>Your products</h2>
+          <ul id="portalProductList" class="portal-list"><li>Loading products...</li></ul>
+        </section>
+
+        <section class="portal-panel">
+          <h2>Recent production and fulfillment</h2>
+          <ul id="productionList" class="portal-list"><li>Loading updates...</li></ul>
+        </section>
+      </div>
     </main>
 
-    <footer class="site-footer">
-      <div class="inner shell">
-        <span>© 2026 Pownce Pins</span>
-        <div class="footer-links">
-          <a href="tos.html">Terms and Privacy</a>
-          <a href="faq.html">FAQ</a>
-          <a href="contact-us.html">Contact Us</a>
-        </div>
-      </div>
-    </footer>
-
-    <aside id="cartDrawer" class="cart-drawer" aria-hidden="true">
-      <div class="cart-header">
-        <h3>Your Cart</h3>
-        <button id="closeCart" class="small-btn">Close</button>
-      </div>
-      <div id="cartItems" class="cart-items"></div>
-      <div class="cart-footer">
-        <div class="total-row"><span>Subtotal</span><strong id="cartTotal">$0.00</strong></div>
-        <button id="checkoutBtn" class="btn btn-primary full">Checkout</button>
-      </div>
-    </aside>
-    <div id="backdrop" class="backdrop" hidden></div>
     <script type="module" src="supabaseClient.js"></script>
-    <script src="script.js"></script>
     <script src="portal-client.js"></script>
   </body>
 </html>
