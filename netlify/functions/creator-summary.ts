@@ -31,12 +31,12 @@ export const handler: Handler = async (event) => {
 
     const { data: creator, error: creatorError } = await supabase
       .from("creators")
-      .select("creator_id, name, email, royalty_rate, stripe_connect_account_id")
-      .ilike("email", creatorEmail)
+      .select("creator_id, name, email, royalty_rate")
+      .ilike("email", creatorEmail.trim())
       .maybeSingle();
     if (creatorError) {
       console.error("Creator profile lookup failed", creatorError);
-      return json({ error: "Creator profile lookup failed" }, 500);
+      return json({ error: "Creator profile lookup failed", details: creatorError.message }, 500);
     }
     if (!creator) return json({ error: "Creator profile not found" }, 404);
 
@@ -64,6 +64,9 @@ export const handler: Handler = async (event) => {
     });
   } catch (error) {
     console.error("Creator summary function failed", error);
-    return json({ error: "Creator summary could not be loaded" }, 500);
+    return json({
+      error: "Creator summary could not be loaded",
+      details: error instanceof Error ? error.message : "Unknown function error",
+    }, 500);
   }
 };

@@ -88,7 +88,8 @@ async function loadCreatorPortal() {
     headers: { Authorization: `Bearer ${session.access_token}` }
   });
   if (!response.ok) {
-    status.textContent = 'Creator access has not been configured for this account.';
+    const failure = await response.json().catch(() => null);
+    status.textContent = failure?.details || failure?.error || 'Creator access has not been configured for this account.';
     document.querySelector('#creatorPortalApp').hidden = false;
     return;
   }
