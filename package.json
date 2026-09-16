@@ -6,6 +6,7 @@
     "start": "npm --prefix creator-portal run start"
   },
   "dependencies": {
+    "@netlify/functions": "^6.0.0",
     "@prisma/client": "^7.10.0",
     "@shopify/shopify-api": "^14.0.1",
     "@supabase/supabase-js": "^2.99.2",

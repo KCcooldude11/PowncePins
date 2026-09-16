@@ -1,5 +1,11 @@
 [build]
   publish = "."
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/creator/summary"
+  to = "/.netlify/functions/creator-summary"
+  status = 200
 
 [[headers]]
   for = "/*"

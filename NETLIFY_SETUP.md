@@ -1,31 +1,25 @@
 # Netlify deployment
 
-This repository contains two applications, so deploy them as two Netlify sites.
+This repository now runs as one Netlify site. The storefront is static HTML and the
+creator dashboard is a static page backed by a Netlify Function.
 
 ## Storefront site
 
-1. Create a Netlify site from this repository.
+1. Create one Netlify site from this repository.
 2. Set the base directory to the repository root.
-3. Use the included root `netlify.toml`; it publishes the static HTML site.
-4. Copy the deployed storefront URL for the portal configuration below.
+3. Use the included root `netlify.toml`; it publishes the storefront and deploys the function in `netlify/functions`.
 
-## Creator portal site
+## Environment variables
 
-1. Create a second Netlify site from the same repository.
-2. Set the base directory to `creator-portal`.
-3. Netlify will use `creator-portal/netlify.toml` and run `npm run build`.
-4. Add these environment variables in the portal site settings:
+Add these environment variables in the single Netlify site settings:
 
-   - `JWT_SECRET`: a long random secret
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `STOREFRONT_URL`: the deployed storefront URL, including `https://`
-   - Any Shopify and Stripe variables listed in `creator-portal/.env.example`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- Any Shopify and Stripe variables listed in `creator-portal/.env.example`
 
-The storefront uses `/creator-portal` as the production portal path. To keep the two
-Netlify sites behind one public domain, add a Netlify rewrite from `/creator-portal/*`
-to the creator portal site URL. Otherwise set `window.POWNCE_CREATOR_PORTAL_URL` to
-the creator portal URL before `script.js` loads on the storefront.
+The portal is available at `/creator-portal.html` on the same site. Creator data is
+loaded through `/.netlify/functions/creator-summary`, which is exposed as
+`/api/creator/summary` by the included rewrite.
 
 ## Supabase URL settings
 

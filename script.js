@@ -377,29 +377,7 @@ function setupAccountMenu() {
   creatorLink.addEventListener('click', async (event) => {
     event.preventDefault();
     const { data } = await window.supabase.auth.getSession();
-    const accessToken = data.session?.access_token;
-
-    if (!accessToken) {
-      window.location.href = 'login-signup.html';
-      return;
-    }
-
-    const localPortalUrl = ['localhost', '127.0.0.1'].includes(window.location.hostname)
-      ? 'http://localhost:3000'
-      : '';
-    const portalBaseUrl = window.POWNCE_CREATOR_PORTAL_URL || localPortalUrl || '/creator-portal';
-    const handoff = await fetch(`${portalBaseUrl}/api/auth/supabase-session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken })
-    });
-
-    if (!handoff.ok) {
-      window.alert('Creator portal access could not be verified.');
-      return;
-    }
-
-    window.location.href = `${portalBaseUrl}/`;
+    window.location.href = data.session ? 'creator-portal.html' : 'login-signup.html';
   });
 
   menu.querySelector('[data-account-logout]').addEventListener('click', async () => {

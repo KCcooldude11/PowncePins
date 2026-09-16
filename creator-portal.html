@@ -4,16 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pownce Pins | Creator Portal</title>
-    <meta http-equiv="refresh" content="0; url=/creator-portal/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="content-page">
-    <script>
-      window.location.replace('/creator-portal/');
-    </script>
     <header class="site-header">
       <nav class="nav shell">
         <a class="brand" href="index.html" aria-label="Pownce Pins home">
@@ -32,10 +28,10 @@
       </nav>
     </header>
 
-    <main class="page shell">
+    <main class="page shell" id="creatorPortalApp" hidden>
       <section class="section panel">
         <h2>Creator Sale Portal</h2>
-        <p class="lead">Track live sales performance for your active pin campaigns. View detailed analytics, sales trends, and customer engagement metrics.</p>
+        <p class="lead" id="portalStatus">Loading your creator data...</p>
       </section>
 
       <section class="section split portal-layout">
@@ -58,6 +54,11 @@
           <h3 style="margin-top: 2rem; margin-bottom: 0.5rem; font-size: 1.25rem;"> Bring-Back Requests</h3>
           <div id="bringBackRequests" class="request-list"></div>
         </div>
+      </section>
+
+      <section class="section panel">
+        <h3>Connected Products</h3>
+        <ul id="portalProductList" class="request-list"></ul>
       </section>
     </main>
 
@@ -86,5 +87,6 @@
     <div id="backdrop" class="backdrop" hidden></div>
     <script type="module" src="supabaseClient.js"></script>
     <script src="script.js"></script>
+    <script src="portal-client.js"></script>
   </body>
 </html>
