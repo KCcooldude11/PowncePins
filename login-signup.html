@@ -67,7 +67,7 @@
     const supabaseUrl = 'https://hszukdjgqrjkbuxcjbud.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzenVrZGpncXJqa2J1eGNqYnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMzM0NjUsImV4cCI6MjA4ODkwOTQ2NX0.H4qR-S4b_e-DuPLHhJR9qiJasaVokXDz1RCyu2JN_Cc';
     const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-    const localAuthRedirect = 'http://localhost:8000/login-signup.html';
+    const authRedirect = `${window.location.origin}${window.location.pathname}`;
 
     supabaseClient.auth.getSession().then(({ data }) => {
       if (data.session) {
@@ -172,7 +172,7 @@
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: localAuthRedirect
+            redirectTo: authRedirect
           }
         });
         if (error) authMessage.textContent = error.message;
@@ -183,7 +183,7 @@
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: localAuthRedirect
+            redirectTo: authRedirect
           }
         });
         if (error) authMessage.textContent = error.message;

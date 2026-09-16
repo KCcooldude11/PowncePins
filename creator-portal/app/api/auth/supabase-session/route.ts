@@ -2,17 +2,23 @@ import { NextResponse } from "next/server";
 import { signCreatorSession } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "http://localhost:8000",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+function getCorsHeaders(request: Request) {
+  const requestOrigin = request.headers.get("origin");
+  const allowedOrigin = process.env.STOREFRONT_URL || requestOrigin || "*";
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: corsHeaders });
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+}
+
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 204, headers: getCorsHeaders(request) });
 }
 
 export async function POST(request: Request) {
+  const corsHeaders = getCorsHeaders(request);
   const body = await request.json().catch(() => null);
   const accessToken = body?.accessToken;
 

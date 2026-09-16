@@ -384,7 +384,11 @@ function setupAccountMenu() {
       return;
     }
 
-    const handoff = await fetch('http://localhost:3000/api/auth/supabase-session', {
+    const localPortalUrl = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ? 'http://localhost:3000'
+      : '';
+    const portalBaseUrl = window.POWNCE_CREATOR_PORTAL_URL || localPortalUrl || '/creator-portal';
+    const handoff = await fetch(`${portalBaseUrl}/api/auth/supabase-session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accessToken })
@@ -395,7 +399,7 @@ function setupAccountMenu() {
       return;
     }
 
-    window.location.href = 'http://localhost:3000/';
+    window.location.href = `${portalBaseUrl}/`;
   });
 
   menu.querySelector('[data-account-logout]').addEventListener('click', async () => {

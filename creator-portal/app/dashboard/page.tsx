@@ -10,7 +10,7 @@ async function getSummary() {
     redirect("/login");
   }
 
-  const res = await fetch("http://localhost:3000/api/creator/summary", {
+  const res = await fetch("/api/creator/summary", {
     headers: { Cookie: `creator_session=${token}` },
     cache: "no-store",
   });
