@@ -31,7 +31,8 @@ grant execute on function public.get_my_creator_profile() to authenticated;
 -- Refresh the Supabase API schema cache so the browser can call the RPC immediately.
 notify pgrst, 'reload schema';
 
--- After a user signs up, an admin grants creator status with:
+-- After a user signs up, an aSUPABASE_URL
+https://hszukdjgqrjkbuxcjbud.supabase.codmin grants creator status with:
 -- update public.creators
 -- set user_id = 'SUPABASE_AUTH_USER_UUID'
 -- where creator_id = 'kasey';
