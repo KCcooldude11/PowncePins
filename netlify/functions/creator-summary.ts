@@ -13,17 +13,21 @@ export const handler: Handler = async (event) => {
     const accessToken = authorization.replace(/^Bearer\s+/i, "");
     if (!accessToken) return json({ error: "Unauthorized" }, 401);
 
-    const supabaseUrl = getValidSupabaseUrl(
+    const supabaseConfig = getSupabaseConfig(
       process.env.SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_URL,
+      Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
     );
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceRoleKey) {
-      console.error("Creator summary is missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-      return json({ error: "Creator portal database is not configured" }, 503);
+    if (!supabaseConfig.url || !serviceRoleKey) {
+      console.error("Creator summary Supabase configuration is invalid", supabaseConfig.diagnostics);
+      return json({
+        error: "Creator portal database is not configured",
+        details: supabaseConfig.diagnostics,
+      }, 503);
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    const supabase = createClient(supabaseConfig.url, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
     const { data: authData, error: authError } = await supabase.auth.getUser(accessToken);
@@ -70,22 +74,62 @@ export const handler: Handler = async (event) => {
     return json({
       error: "Creator summary could not be loaded",
       details: error instanceof Error ? error.message : "Unknown function error",
+      supabaseUrlDiagnostics: getSupabaseConfig(
+        process.env.SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+      ).diagnostics,
     }, 500);
   }
 };
 
-function getValidSupabaseUrl(...candidates: Array<string | undefined>) {
+function getSupabaseConfig(
+  supabaseUrl: string | undefined,
+  publicSupabaseUrl: string | undefined,
+  hasServiceRoleKey: boolean,
+) {
+  const candidates = [
+    { name: "SUPABASE_URL", value: supabaseUrl },
+    { name: "NEXT_PUBLIC_SUPABASE_URL", value: publicSupabaseUrl },
+  ];
+  const diagnostics = candidates.map(({ name, value }) => {
+    const normalized = normalizeSupabaseUrl(value);
+    return {
+      variable: name,
+      provided: Boolean(value),
+      length: value?.length || 0,
+      normalized: Boolean(normalized),
+      hostname: normalized ? new URL(normalized).hostname : null,
+    };
+  });
+
   for (const candidate of candidates) {
-    if (!candidate) continue;
-    try {
-      const url = new URL(candidate.trim());
-      if (url.protocol === "https:" && url.hostname.endsWith(".supabase.co")) {
-        return url.toString().replace(/\/$/, "");
-      }
-    } catch {
-      continue;
+    const normalized = normalizeSupabaseUrl(candidate.value);
+    if (normalized) {
+      return {
+        url: normalized,
+        diagnostics: { selectedVariable: candidate.name, hasServiceRoleKey, candidates: diagnostics },
+      };
     }
   }
 
-  return null;
+  return {
+    url: null,
+    diagnostics: { selectedVariable: null, hasServiceRoleKey, candidates: diagnostics },
+  };
+}
+
+function normalizeSupabaseUrl(candidate: string | undefined) {
+  if (!candidate) return null;
+  let value = candidate.trim();
+  value = value.replace(/^SUPABASE_URL\s*=\s*/i, "").trim();
+  value = value.replace(/^['"]|['"]$/g, "").trim();
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || !url.hostname.endsWith(".supabase.co")) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
 }
