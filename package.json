@@ -1,5 +1,20 @@
 {
+  "scripts": {
+    "dev": "npm --prefix creator-portal run dev",
+    "dev:all": "powershell -ExecutionPolicy Bypass -File .\\start-local.ps1",
+    "build": "npm --prefix creator-portal run build",
+    "start": "npm --prefix creator-portal run start"
+  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.99.2"
+    "@prisma/client": "^7.10.0",
+    "@shopify/shopify-api": "^14.0.1",
+    "@supabase/supabase-js": "^2.99.2",
+    "axios": "^1.20.0",
+    "dotenv": "^17.4.2",
+    "next-auth": "^4.24.15",
+    "stripe": "^22.6.2"
+  },
+  "devDependencies": {
+    "prisma": "^8.0.0-rc.14"
   }
 }

@@ -1,0 +1,32 @@
+[
+  {
+    "creatorId": "rachel-rankless",
+    "name": "Rachel",
+    "products": ["p000", "p003"],
+    "stripeAccountId": "acct_placeholder_rachel",
+    "royaltyRate": 0.10,
+    "bio": "Creator of Rankless",
+    "avatar": "assets/creators/rachel.png",
+    "social": { "twitter": "@rachel_rankless" }
+  },
+  {
+    "creatorId": "orchard-guild",
+    "name": "Orchard Guild",
+    "products": ["p002"],
+    "stripeAccountId": "acct_placeholder_orchard",
+    "royaltyRate": 0.12,
+    "bio": "Indie studio",
+    "avatar": "assets/creators/orchard.png",
+    "social": { "instagram": "@orchardguild" }
+  },
+  {
+    "creatorId": "apple-core",
+    "name": "Apple Core Studio",
+    "products": ["p004"],
+    "stripeAccountId": "acct_placeholder_apple",
+    "royaltyRate": 0.08,
+    "bio": "Design studio",
+    "avatar": "assets/creators/apple.png",
+    "social": { "twitter": "@apple_core" }
+  }
+]

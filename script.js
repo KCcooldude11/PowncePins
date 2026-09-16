@@ -60,7 +60,7 @@ const PRODUCTS = [
     name: 'Apple Enamel Pin',
     category: 'Character Pins',
     price: 18,
-    stock: 0,
+    stock: 10,
     image: 'assets/pins/apple.png',
     featured: true,
     description: '',
@@ -70,7 +70,11 @@ const PRODUCTS = [
   }
 ];
 
-const SOLD_OUT_PRODUCT_IDS = new Set(['p002', 'p004']);
+const SOLD_OUT_PRODUCT_IDS = new Set(['p002']);
+
+// NOTE: Checkout links and creator metadata loaders removed to restore
+// previous stable rendering (these were added for Shopify/creator features).
+
 
 const BRING_BACK_CAMPAIGN_MAP = {
   p002: 'orchard-guild',
@@ -83,6 +87,94 @@ const HOMEPAGE_TIERS = [
   { price: 700, unit: '$7.00 per pin', quantity: '100 custom pins', cta: 'Request Project' },
   { price: 995, unit: '$4.98 per pin', quantity: '200 custom pins', cta: 'Request Project' }
 ];
+
+// Load Checkout Links from repo file (generated from Shopify Checkout Links)
+async function loadCheckoutLinks() {
+  try {
+    const res = await fetch('/checkout_links.json');
+    if (res.ok) {
+      window.CHECKOUT_LINKS = await res.json();
+    } else {
+      window.CHECKOUT_LINKS = {};
+    }
+  } catch (e) {
+    window.CHECKOUT_LINKS = {};
+    console.warn('Could not load checkout links', e);
+  }
+}
+
+// Load drop schedule data (drops.json)
+async function loadDrops() {
+  try {
+    const res = await fetch('/drops.json');
+    if (res.ok) {
+      window.DROPS = await res.json();
+    } else {
+      window.DROPS = {};
+    }
+  } catch (e) {
+    window.DROPS = {};
+    console.warn('Could not load drops.json', e);
+  }
+}
+
+function getDropFor(productId) {
+  if (!window.DROPS) return null;
+  return window.DROPS[productId] || null;
+}
+
+function dropTimerHtml(product) {
+  const drop = getDropFor(product.id);
+  if (!drop) return '';
+  try {
+    const start = new Date(drop.startedAt);
+    const end = new Date(start.getTime() + (parseFloat(drop.durationHours || 0) * 3600 * 1000));
+    return `
+      <div class="drop-timer" data-drop-start="${start.toISOString()}" data-drop-end="${end.toISOString()}">
+        <span class="countdown" data-countdown></span>
+      </div>
+    `;
+  } catch (e) {
+    return '';
+  }
+}
+
+function startDropTimers() {
+  if (window._dropTimerInterval) {
+    clearInterval(window._dropTimerInterval);
+  }
+
+  function updateAll() {
+    const nodes = document.querySelectorAll('[data-countdown]');
+    const now = Date.now();
+    nodes.forEach((el) => {
+      const parent = el.closest('[data-drop-end]') || el.closest('[data-drop-start]');
+      const endAttr = parent && parent.getAttribute('data-drop-end');
+      const startAttr = parent && parent.getAttribute('data-drop-start');
+      if (!endAttr || !startAttr) return;
+      const end = new Date(endAttr).getTime();
+      const start = new Date(startAttr).getTime();
+      if (now < start) {
+        const remain = start - now;
+        const hrs = Math.floor(remain / (1000 * 60 * 60));
+        const mins = Math.floor((remain % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((remain % (1000 * 60)) / 1000);
+        el.textContent = `Starts in ${hrs}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+      } else if (now >= start && now < end) {
+        const remain = end - now;
+        const hrs = Math.floor(remain / (1000 * 60 * 60));
+        const mins = Math.floor((remain % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((remain % (1000 * 60)) / 1000);
+        el.textContent = `${hrs}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+      } else {
+        el.innerHTML = '<span class="drop-ended">Ended</span>';
+      }
+    });
+  }
+
+  updateAll();
+  window._dropTimerInterval = setInterval(updateAll, 1000);
+}
 
 const CUSTOM_QUOTES = [
   {
@@ -231,6 +323,110 @@ if (initialSearch) {
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
+function setupAccountMenu() {
+  const accountLink = document.querySelector('.account-btn');
+  if (!accountLink || accountLink.dataset.accountReady === 'true') return;
+  if (!window.supabase) {
+    window.setTimeout(setupAccountMenu, 100);
+    return;
+  }
+  accountLink.dataset.accountReady = 'true';
+
+  const accountWrap = document.createElement('div');
+  accountWrap.className = 'account-menu-wrap';
+  accountLink.parentNode.insertBefore(accountWrap, accountLink);
+  accountWrap.appendChild(accountLink);
+
+  const menu = document.createElement('div');
+  menu.className = 'account-menu';
+  menu.hidden = true;
+  menu.innerHTML = `
+    <a href="account-settings.html">Account Settings</a>
+    <a href="creator-portal.html" data-creator-portal-link hidden>Creator Portal</a>
+    <button type="button" data-account-logout>Log Out</button>
+  `;
+  accountWrap.appendChild(menu);
+
+  const creatorLink = menu.querySelector('[data-creator-portal-link]');
+
+  const render = (session, creatorProfile = null) => {
+    if (!session) {
+      accountLink.href = 'login-signup.html';
+      accountLink.textContent = 'Account';
+      accountLink.removeAttribute('aria-haspopup');
+      accountLink.removeAttribute('aria-expanded');
+      creatorLink.hidden = true;
+      menu.hidden = true;
+      return;
+    }
+
+    accountLink.href = '#';
+    accountLink.textContent = 'Account';
+    accountLink.setAttribute('aria-haspopup', 'menu');
+    accountLink.setAttribute('aria-expanded', 'false');
+    creatorLink.hidden = !creatorProfile;
+  };
+
+  accountLink.addEventListener('click', (event) => {
+    if (accountLink.getAttribute('aria-haspopup') !== 'menu') return;
+    event.preventDefault();
+    menu.hidden = !menu.hidden;
+    accountLink.setAttribute('aria-expanded', String(!menu.hidden));
+  });
+
+  creatorLink.addEventListener('click', async (event) => {
+    event.preventDefault();
+    const { data } = await window.supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+
+    if (!accessToken) {
+      window.location.href = 'login-signup.html';
+      return;
+    }
+
+    const handoff = await fetch('http://localhost:3000/api/auth/supabase-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken })
+    });
+
+    if (!handoff.ok) {
+      window.alert('Creator portal access could not be verified.');
+      return;
+    }
+
+    window.location.href = 'http://localhost:3000/';
+  });
+
+  menu.querySelector('[data-account-logout]').addEventListener('click', async () => {
+    const { error } = await window.supabase.auth.signOut();
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+    window.location.href = 'index.html';
+  });
+
+  const updateSessionMenu = async (session) => {
+    if (!session) {
+      render(null);
+      return;
+    }
+
+    const { data } = await window.supabase.rpc('get_my_creator_profile');
+    render(session, data?.[0] || null);
+  };
+
+  window.supabase.auth.getSession().then(({ data }) => updateSessionMenu(data.session));
+  window.supabase.auth.onAuthStateChange((_event, session) => updateSessionMenu(session));
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupAccountMenu);
+} else {
+  setupAccountMenu();
+}
+
 function saveCart() {
   localStorage.setItem('pownce-cart', JSON.stringify(state.cart));
 }
@@ -273,6 +469,7 @@ function getBackerForProduct(product) {
 function productCard(product, isComingSoon = false) {
   const soldOut = isSoldOut(product);
   const backer = getBackerForProduct(product);
+  const hasBuyLink = typeof window !== 'undefined' && window.CHECKOUT_LINKS && window.CHECKOUT_LINKS[product.id];
 
   // Add data-story-pin="true" for Rankless Story Pin (id: p000)
   const isRanklessStoryPin = product.id === 'p000' && product.category === 'Story Pins';
@@ -312,14 +509,50 @@ function productCard(product, isComingSoon = false) {
                 <p class="stock ${soldOut ? 'sold-out-text' : ''}">
                   ${soldOut ? 'Sold Out' : `Stock: ${product.stock}`}
                 </p>
+                ${dropTimerHtml(product)}
                 ${
                   soldOut
-                    ? `<button class="btn btn-ghost full btn-bring-back" data-bring-back="${product.id}">Bring it back</button>`
-                    : `<button class="btn btn-primary full" data-add="${product.id}">Add to Cart</button>`
+                    ? (hasBuyLink
+                        ? `<div class="card-ctas"><button class="btn btn-secondary full" data-buy="${product.id}">Buy Now</button></div>`
+                        : `<button class="btn btn-ghost full btn-bring-back" data-bring-back="${product.id}">Bring it back</button>`
+                      )
+                    : `<div class="card-ctas"><button class="btn btn-primary full" data-add="${product.id}">Add to Cart</button><button class="btn btn-secondary full" data-buy="${product.id}">Buy Now</button></div>`
                 }
               </div>
             `
       }
+    </article>
+  `;
+}
+
+// Minimal presale card: only title and countdown (no buttons, price, or metadata)
+function presaleCard(product) {
+  // Use the same outer structure so styles are consistent
+  const drop = getDropFor(product.id);
+  let dropHtml = '';
+  if (drop) {
+    try {
+      const start = new Date(drop.startedAt);
+      const end = new Date(start.getTime() + (parseFloat(drop.durationHours || 0) * 3600 * 1000));
+      dropHtml = `
+        <div class="drop-timer presale-drop" data-drop-start="${start.toISOString()}" data-drop-end="${end.toISOString()}">
+          <span class="countdown presale-countdown" data-countdown></span>
+        </div>
+      `;
+    } catch (e) {
+      dropHtml = '';
+    }
+  }
+
+  return `
+    <article class="card presale-card" data-product-id="${product.id}">
+      <div class="art">
+        <img class="pin-img" src="${product.image}" alt="${product.name}" loading="lazy" />
+      </div>
+      <div class="card-body presale-body">
+        <h3 class="presale-title">${product.name}</h3>
+        ${dropHtml}
+      </div>
     </article>
   `;
 }
@@ -340,14 +573,23 @@ function renderHomeSections() {
   const quoteRoot = document.querySelector('#quoteGrid');
   const reviewRoot = document.querySelector('#etsyReviewGrid');
   const featured = PRODUCTS.filter((item) => item.featured).slice(0, 4);
-  const newest = PRODUCTS.filter((item) => item.newDrop).slice(0, 4);
+  const newestAll = PRODUCTS.filter((item) => item.newDrop);
+  // Prioritize items that have a configured drop so their countdown is visible first
+  newestAll.sort((a, b) => {
+    const aHas = !!getDropFor(a.id);
+    const bHas = !!getDropFor(b.id);
+    if (aHas === bHas) return PRODUCTS.indexOf(a) - PRODUCTS.indexOf(b);
+    return (bHas ? 1 : 0) - (aHas ? 1 : 0);
+  });
+  const newest = newestAll.slice(0, 4);
 
   if (featuredRoot) {
     featuredRoot.innerHTML = featured.map(productCard).join('');
   }
 
   if (newestRoot) {
-    newestRoot.innerHTML = newest.map(product => productCard(product)).join('');
+    // Presale view: simplified card showing only title and countdown
+    newestRoot.innerHTML = newest.map(product => presaleCard(product)).join('');
   }
 
   if (newestRoot2) {
@@ -740,8 +982,32 @@ function renderCollection() {
     window._collectionTabsBound = true;
   }
 
-  // Initial render: show Story Pins
-  renderTab('story');
+  // If URL includes ?product=pXXX, open that product's tab/modal directly
+  const urlParams = new URLSearchParams(window.location.search);
+  const productParam = (urlParams.get('product') || '').trim();
+
+  if (productParam) {
+    const isStory = storyIds.includes(productParam);
+    const isCharacter = characterIds.includes(productParam);
+    if (isStory) {
+      renderTab('story');
+    } else if (isCharacter) {
+      renderTab('character');
+    } else {
+      renderTab('story');
+    }
+
+    // Attempt to open the product modal after rendering
+    setTimeout(() => {
+      const targetCard = collectionRoot.querySelector(`[data-product-id="${productParam}"]`);
+      if (targetCard) {
+        targetCard.click();
+      }
+    }, 50);
+  } else {
+    // Initial render: show Story Pins
+    renderTab('story');
+  }
 }
 
 function renderCreatorCampaign(campaign) {
@@ -1134,6 +1400,20 @@ window.addEventListener('resize', debugPinNumberPositions);
 debugPinNumberPositions(); // run on load too
 
 document.addEventListener('click', (event) => {
+  const buyButton = event.target.closest('[data-buy]');
+  if (buyButton) {
+    const productId = buyButton.dataset.buy;
+    const link = window.CHECKOUT_LINKS && window.CHECKOUT_LINKS[productId];
+    if (link) {
+      window.open(link, '_blank');
+    } else {
+      // fallback to cart if no checkout link configured
+      addToCart(productId);
+      setCartOpen(true);
+    }
+    return;
+  }
+
   const addButton = event.target.closest('[data-add]');
   if (addButton) {
     addToCart(addButton.dataset.add);
@@ -1171,6 +1451,19 @@ document.addEventListener('click', (event) => {
 
   const checkoutButton = event.target.closest('#checkoutBtn');
   if (checkoutButton) {
+    // Prefer Shopify Checkout Link when possible
+    const entries = getCartEntries();
+    if (entries.length === 1) {
+      const pid = entries[0].id;
+      const link = window.CHECKOUT_LINKS && window.CHECKOUT_LINKS[pid];
+      if (link) {
+        // Redirect to Shopify checkout for the single item
+        window.location.href = link;
+        return;
+      }
+    }
+
+    // For multi-item carts or when no checkout link exists, fallback to internal checkout page
     window.location.href = 'checkout.html';
   }
 
@@ -1198,6 +1491,26 @@ document.addEventListener('input', (event) => {
     renderShop();
   }
 });
+
+// Initialize checkout links and drops on load, then re-render sections so timers appear.
+async function initShopIntegration() {
+  await Promise.all([loadCheckoutLinks(), loadDrops()]);
+  try {
+    renderHomeSections();
+    renderShop();
+    renderCollection();
+  } catch (e) {
+    // ignore if sections not present on current page
+  }
+  // Start timers after rendering elements
+  startDropTimers();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initShopIntegration);
+} else {
+  initShopIntegration();
+}
 
 const contactForm = document.querySelector('#contactForm');
 if (contactForm) {
