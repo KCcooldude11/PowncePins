@@ -44,10 +44,10 @@ const PRODUCTS = [
   },
   {
     id: 'p003',
-    name: 'Salem Enamel Pin',
+    name: 'Salem Character Pin',
     category: 'Character Pins',
     price: 18,
-    stock: 0,
+    stock: 25,
     image: 'assets/pins/salem.png',
     description: '',
     featured: true,
@@ -71,7 +71,7 @@ const PRODUCTS = [
 ];
 
 // Retired pins: shown as Sold Out with a "Bring it back" button.
-const SOLD_OUT_PRODUCT_IDS = new Set(['p000', 'p002', 'p003']);
+const SOLD_OUT_PRODUCT_IDS = new Set(['p000', 'p002']);
 
 // NOTE: Checkout links and creator metadata loaders removed to restore
 // previous stable rendering (these were added for Shopify/creator features).
