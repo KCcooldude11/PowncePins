@@ -7,7 +7,7 @@ const PRODUCTS = [
     name: 'Rankless Story Enamel Pin',
     category: 'Story Pins',
     price: 40,
-    stock: 50,
+    stock: 0,
     image: 'assets/pins/POWNCE001.png',
     featured: true,
     description: 'Rankless is a graphic novel. This is the March Pick.',
@@ -47,7 +47,7 @@ const PRODUCTS = [
     name: 'Salem Enamel Pin',
     category: 'Character Pins',
     price: 18,
-    stock: 18,
+    stock: 0,
     image: 'assets/pins/salem.png',
     description: '',
     featured: true,
@@ -70,7 +70,8 @@ const PRODUCTS = [
   }
 ];
 
-const SOLD_OUT_PRODUCT_IDS = new Set(['p002']);
+// Retired pins: shown as Sold Out with a "Bring it back" button.
+const SOLD_OUT_PRODUCT_IDS = new Set(['p000', 'p002', 'p003']);
 
 // NOTE: Checkout links and creator metadata loaders removed to restore
 // previous stable rendering (these were added for Shopify/creator features).
