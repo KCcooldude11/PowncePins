@@ -7,6 +7,7 @@ import {
   toVariantGid,
   variants,
 } from "../lib/storefront";
+import fees from "../../shopify_fees.json";
 
 // Builds a Shopify cart from the site's cart and returns Shopify's hosted
 // checkout URL. Prices, stock limits, tax and shipping are all enforced by
@@ -34,6 +35,16 @@ const CART_CREATE = `
 `;
 
 type CartItem = { id: string; qty: number };
+type ShippingChoice = "together" | "separate";
+
+function parseShipping(body: string | null): ShippingChoice | null {
+  try {
+    const value = JSON.parse(body || "{}").shipping;
+    return value === "together" || value === "separate" ? value : null;
+  } catch {
+    return null;
+  }
+}
 
 function parseItems(body: string | null): CartItem[] | null {
   try {
@@ -82,17 +93,50 @@ export const handler: Handler = async (event) => {
       return json({ error: "The preorder window has closed for some items in your cart.", unavailable: closed }, 409);
     }
 
-    const lines = items.map((item) => {
-      const shipDate = statuses[item.id]?.preorder?.shipDate;
+    // Group lines by when they can ship: in-stock pins now, preorders by
+    // their ship date. More than one group means the shopper picks between
+    // one shipment (wait for the last preorder) or one shipment per group
+    // (a flat fee per extra shipment, since Shopify quotes one shipping rate
+    // per order).
+    const shipKey = (item: CartItem) => statuses[item.id]?.preorder?.shipDate || "now";
+    const groups = [...new Set(items.map(shipKey))].sort((a, b) =>
+      a === "now" ? -1 : b === "now" ? 1 : a.localeCompare(b),
+    );
+    const mixed = groups.length > 1;
+    const shipping = mixed ? parseShipping(event.body) : null;
+    if (mixed && !shipping) {
+      return json({ error: "Choose how you'd like your order shipped." }, 400);
+    }
+    const lastShipDate = groups.filter((g) => g !== "now").pop();
+    const groupLabel = (key: string) => (key === "now" ? "Ships now" : `Ships by ${formatShipDate(key)}`);
+
+    const lines: Array<Record<string, unknown>> = items.map((item) => {
+      const key = shipKey(item);
+      const attributes: Array<{ key: string; value: string }> = [];
+      // Shows on the Shopify order and the confirmation email.
+      if (key !== "now") attributes.push({ key: "Preorder", value: groupLabel(key) });
+      if (shipping === "together" && lastShipDate) {
+        attributes.push({ key: "Shipment", value: `With preorder, by ${formatShipDate(lastShipDate)}` });
+      } else if (shipping === "separate") {
+        attributes.push({ key: "Shipment", value: `${groups.indexOf(key) + 1} of ${groups.length}: ${groupLabel(key)}` });
+      }
       return {
         merchandiseId: toVariantGid(variants[item.id]),
         quantity: item.qty,
-        // Shows on the Shopify order and the confirmation email.
-        ...(shipDate ? { attributes: [{ key: "Preorder", value: `Ships by ${formatShipDate(shipDate)}` }] } : {}),
+        ...(attributes.length ? { attributes } : {}),
       };
     });
 
-    const result = await storefrontRequest(CART_CREATE, { input: { lines } }, buyerIp);
+    const cartAttributes: Array<{ key: string; value: string }> = [];
+    if (shipping === "together" && lastShipDate) {
+      cartAttributes.push({ key: "Shipping", value: `Ship together by ${formatShipDate(lastShipDate)}` });
+    } else if (shipping === "separate") {
+      cartAttributes.push({ key: "Shipping", value: `Ship separately (${groups.length} shipments)` });
+      lines.push({ merchandiseId: toVariantGid(fees.separateShipmentFee), quantity: groups.length - 1 });
+    }
+
+    const input = { lines, ...(cartAttributes.length ? { attributes: cartAttributes } : {}) };
+    const result = await storefrontRequest(CART_CREATE, { input }, buyerIp);
     if (!result.ok) {
       console.error("create-cart: Storefront API error", result.status, JSON.stringify(result.errors));
       return json({ error: "Couldn't start checkout. Please try again." }, 502);

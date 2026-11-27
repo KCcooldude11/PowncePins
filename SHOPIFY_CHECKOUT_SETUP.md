@@ -53,3 +53,46 @@ count (for example 130) as inventory before the pins arrive.
 
 `python -m http.server` can't run Netlify functions. Use `netlify dev` (after
 `netlify link`) so `/api/cart` works locally with your env vars.
+
+## Mixed carts: ship together or ship when ready
+
+When a cart has pins that ship at different times (in-stock pins plus a
+preorder, or preorders with different ship dates), the cart drawer asks the
+shopper to choose:
+
+- **Ship together**: one shipment when the last preorder is ready. The
+  shopper pays Shopify's shipping rate once.
+- **Ship when ready**: one shipment per ship date. `/api/cart` adds the
+  hidden **Separate shipment fee** product ($5 per extra shipment, no
+  shipping, not taxed) on top of the normal shipping rate.
+
+The choice is saved on the Shopify order:
+
+- Order **Additional details** has `Shipping: Ship together by <date>` or
+  `Shipping: Ship separately (N shipments)`.
+- Each line item has `Shipment: ...` saying when it goes out.
+
+To change the fee, change the price of the **Separate shipment fee** product
+in Shopify **and** `SEPARATE_SHIPMENT_FEE` in `script.js` (the cart shows it
+before checkout). Its variant id lives in `shopify_fees.json`.
+
+### Fulfilling these orders
+
+- **Ship together**: don't fulfill until the preorder pins arrive, then ship
+  everything in one package.
+- **Ship when ready**: fulfill only the "Ships now" lines (partial
+  fulfillment), then fulfill the rest when the preorder arrives.
+
+### Optional: auto-hold "ship together" orders with Shopify Flow
+
+So nobody ships the in-stock pin early by accident:
+
+1. Install **Shopify Flow** (free) from the Shopify App Store.
+2. Create a workflow with the trigger **Order created**.
+3. Add a condition: the order's custom attributes include key `Shipping` with
+   a value that starts with `Ship together`.
+4. Add the action **Hold fulfillment orders**, with a note like "Ship together
+   with preorder".
+5. Turn the workflow on. Release the hold when the preorder pins arrive.
+
+Flow's field names can differ slightly from these labels.

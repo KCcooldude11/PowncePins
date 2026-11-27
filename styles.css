@@ -2626,3 +2626,43 @@ body.content-page .panel {
   opacity: 0.8;
   margin: 0.15rem 0;
 }
+
+/* Ship together / ship when ready choice in the cart drawer */
+.ship-choice {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 0 0 12px;
+}
+
+.ship-choice legend {
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+.ship-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 6px 0;
+  cursor: pointer;
+}
+
+.ship-option input {
+  margin-top: 4px;
+  accent-color: var(--primary);
+}
+
+.ship-option strong,
+.ship-option small {
+  display: block;
+}
+
+.ship-option small {
+  color: var(--muted);
+}
+
+.ship-fee-row {
+  font-size: 0.95em;
+  color: var(--muted);
+}

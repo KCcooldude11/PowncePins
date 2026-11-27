@@ -67,6 +67,32 @@ const PRODUCTS = [
     newDrop: true,
     pinNumber: '004',
     characterName: 'Apple'
+  },
+  {
+    id: 'p005',
+    name: 'Apple #001',
+    category: 'Character Pins',
+    price: 20,
+    stock: 100,
+    image: 'assets/pins/apple-001.webp',
+    featured: true,
+    description: '',
+    newDrop: true,
+    pinNumber: '001',
+    characterName: 'Apple'
+  },
+  {
+    id: 'p006',
+    name: 'Inuu #002',
+    category: 'Character Pins',
+    price: 20,
+    stock: 100,
+    image: 'assets/pins/inuu-002.webp',
+    featured: true,
+    description: '',
+    newDrop: true,
+    pinNumber: '002',
+    characterName: 'Inuu'
   }
 ];
 
@@ -124,7 +150,10 @@ async function startCheckout(items) {
     const res = await fetch('/api/cart', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: items.map((item) => ({ id: item.id, qty: item.qty })) })
+      body: JSON.stringify({
+        items: items.map((item) => ({ id: item.id, qty: item.qty })),
+        shipping: state.shipChoice
+      })
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.checkoutUrl) {
@@ -379,6 +408,7 @@ const state = {
   filter: 'All',
   search: '',
   cart: JSON.parse(localStorage.getItem('pownce-cart') || '{}'),
+  shipChoice: localStorage.getItem('pownce-ship-choice') === 'separate' ? 'separate' : 'together',
   bringBackRequests: JSON.parse(localStorage.getItem('pownce-bring-back-requests') || '[]'),
   bringBackProductId: ''
 };
@@ -1271,6 +1301,55 @@ function getCartEntries() {
     .filter(Boolean);
 }
 
+// Mixed carts (in-stock pins plus preorders, or preorders with different
+// ship dates) let the shopper wait and ship everything at once, or ship each
+// group when it's ready for a flat fee per extra shipment. Keep this fee in
+// sync with the "Separate shipment fee" product price in Shopify.
+const SEPARATE_SHIPMENT_FEE = 5;
+
+function shipGroups(entries) {
+  const keys = new Set(entries.map((item) => {
+    const preorder = getPreorder(item);
+    return preorder && preorder.shipDate ? preorder.shipDate : 'now';
+  }));
+  return [...keys].sort((a, b) => (a === 'now' ? -1 : b === 'now' ? 1 : a.localeCompare(b)));
+}
+
+function shipChoiceHtml(groups) {
+  const last = groups[groups.length - 1];
+  const extra = groups.length - 1;
+  const option = (value, title, detail) => `
+    <label class="ship-option">
+      <input type="radio" name="shipChoice" value="${value}" ${state.shipChoice === value ? 'checked' : ''} />
+      <span><strong>${title}</strong><small>${detail}</small></span>
+    </label>`;
+  const separateDetail = groups[0] === 'now'
+    ? `In-stock pins ship now, preorders when ready. +${currency.format(SEPARATE_SHIPMENT_FEE * extra)}`
+    : `Each preorder ships when it's ready. +${currency.format(SEPARATE_SHIPMENT_FEE * extra)}`;
+  return `
+    <fieldset id="shipChoice" class="ship-choice">
+      <legend>How should we ship your order?</legend>
+      ${option('together', 'Ship together', `Everything ships by ${formatShipDate(last)}. Pay shipping once.`)}
+      ${option('separate', 'Ship when ready', separateDetail)}
+    </fieldset>`;
+}
+
+function renderShipChoice(entries) {
+  const footer = document.querySelector('#cartDrawer .cart-footer');
+  if (!footer) return 0;
+  footer.querySelector('#shipChoice')?.remove();
+  footer.querySelector('#shipFeeRow')?.remove();
+  const groups = shipGroups(entries);
+  if (groups.length < 2) return 0;
+  const totalRow = footer.querySelector('.total-row');
+  footer.insertBefore(document.createRange().createContextualFragment(shipChoiceHtml(groups)), totalRow);
+  if (state.shipChoice !== 'separate') return 0;
+  const fee = SEPARATE_SHIPMENT_FEE * (groups.length - 1);
+  totalRow.insertAdjacentHTML('beforebegin',
+    `<div id="shipFeeRow" class="total-row ship-fee-row"><span>Separate shipment fee</span><span>${currency.format(fee)}</span></div>`);
+  return fee;
+}
+
 function renderCart() {
   const cartItems = document.querySelector('#cartItems');
   const cartTotal = document.querySelector('#cartTotal');
@@ -1281,7 +1360,8 @@ function renderCart() {
 
   const entries = getCartEntries();
   const count = entries.reduce((sum, item) => sum + item.qty, 0);
-  const total = entries.reduce((sum, item) => sum + item.qty * item.price, 0);
+  const fee = renderShipChoice(entries);
+  const total = entries.reduce((sum, item) => sum + item.qty * item.price, 0) + fee;
 
   cartCount.forEach((el) => {
     el.textContent = String(count);
@@ -1314,6 +1394,13 @@ function renderCart() {
     )
     .join('');
 }
+
+document.addEventListener('change', (event) => {
+  if (event.target.name !== 'shipChoice') return;
+  state.shipChoice = event.target.value === 'separate' ? 'separate' : 'together';
+  localStorage.setItem('pownce-ship-choice', state.shipChoice);
+  renderCart();
+});
 
 function setCartOpen(nextState) {
   const drawer = document.querySelector('#cartDrawer');
