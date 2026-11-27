@@ -2597,3 +2597,32 @@ body.content-page .panel {
 .checkout-error:empty {
   display: none;
 }
+
+.preorder-note {
+  font-size: 0.85rem;
+  margin: 0.4rem 0 0.2rem;
+  line-height: 1.4;
+}
+
+.preorder-note strong {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.preorder-upcoming strong {
+  color: #6941c6;
+}
+
+.preorder-open strong {
+  color: #067647;
+}
+
+.preorder-closed strong {
+  color: #b42318;
+}
+
+.cart-preorder {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin: 0.15rem 0;
+}

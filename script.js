@@ -18,9 +18,9 @@ const PRODUCTS = [
   },
   {
     id: 'p001',
-    name: 'Orange Enamel Pin',
+    name: 'Orange Character Pin',
     category: 'Character Pins',
-    price: 18,
+    price: 20,
     stock: 22,
     image: 'assets/pins/orange.png',
     featured: true,
@@ -140,6 +140,75 @@ async function startCheckout(items) {
     buttons.forEach((btn) => { btn.disabled = false; });
     if (checkoutBtn) checkoutBtn.textContent = checkoutLabel;
   }
+}
+
+// Live price, stock and preorder details from Shopify (via /api/pin-status).
+// Shopify is the source of truth; the PRODUCTS list above is the fallback.
+window.PIN_STATUS = {};
+
+async function loadPinStatus() {
+  try {
+    const res = await fetch('/api/pin-status');
+    if (!res.ok) return;
+    const data = await res.json();
+    window.PIN_STATUS = data.pins || {};
+    PRODUCTS.forEach((product) => {
+      const status = window.PIN_STATUS[product.id];
+      if (!status) return;
+      if (typeof status.price === 'number') product.price = status.price;
+      if (typeof status.quantityAvailable === 'number') product.stock = status.quantityAvailable;
+    });
+  } catch (e) {
+    console.warn('Could not load live pin status', e);
+  }
+}
+
+function getPinStatus(product) {
+  return (window.PIN_STATUS && window.PIN_STATUS[product.id]) || null;
+}
+
+function getPreorder(product) {
+  const status = getPinStatus(product);
+  if (!status || !status.preorder) return null;
+  const preorder = status.preorder;
+  // Re-check the window in the browser so a page left open flips on time.
+  const now = Date.now();
+  let state = 'open';
+  if (preorder.startsAt && new Date(preorder.startsAt).getTime() > now) state = 'upcoming';
+  else if (preorder.endsAt && new Date(preorder.endsAt).getTime() <= now) state = 'closed';
+  return { ...preorder, state };
+}
+
+// "2027-06-05" -> "June 5, 2027" (a date with no time zone)
+function formatShipDate(date) {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', {
+    timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric'
+  });
+}
+
+// Preorder windows are set in Pacific time in Shopify.
+function formatWindowDate(dateTime) {
+  return new Date(dateTime).toLocaleDateString('en-US', {
+    timeZone: 'America/Los_Angeles', month: 'long', day: 'numeric', year: 'numeric'
+  });
+}
+
+function preorderNoteHtml(product) {
+  const preorder = getPreorder(product);
+  if (!preorder) return '';
+  const parts = [];
+  if (preorder.state === 'upcoming') {
+    parts.push('<strong>Coming soon</strong>');
+    if (preorder.startsAt) parts.push(`Preorders open ${formatWindowDate(preorder.startsAt)}`);
+  } else if (preorder.state === 'closed') {
+    parts.push('<strong>Preorder closed</strong>');
+  } else {
+    parts.push('<strong>Preorder</strong>');
+    if (preorder.endsAt) parts.push(`Closes ${formatWindowDate(preorder.endsAt)}`);
+  }
+  if (preorder.shipDate && preorder.state !== 'closed') parts.push(`Ships by ${formatShipDate(preorder.shipDate)}`);
+  return `<p class="preorder-note preorder-${preorder.state}">${parts.join(' · ')}</p>`;
 }
 
 // Load drop schedule data (drops.json)
@@ -416,7 +485,15 @@ function saveBringBackRequests() {
 }
 
 function isSoldOut(product) {
+  const status = getPinStatus(product);
+  if (status) return !status.availableForSale || status.quantityAvailable === 0;
   return product.stock <= 0 || SOLD_OUT_PRODUCT_IDS.has(product.id);
+}
+
+function stockText(product) {
+  const status = getPinStatus(product);
+  if (status && typeof status.quantityAvailable !== 'number') return '';
+  return getPreorder(product) ? `${product.stock} available` : `Stock: ${product.stock}`;
 }
 
 function getBringBackCountByCampaign(campaignId) {
@@ -485,20 +562,32 @@ function productCard(product, isComingSoon = false) {
                   <span class="tag">${product.category}</span>
                   <span class="price">${currency.format(product.price)}</span>
                 </div>
+                ${preorderNoteHtml(product)}
                 <p class="stock ${soldOut ? 'sold-out-text' : ''}">
-                  ${soldOut ? 'Sold Out' : `Stock: ${product.stock}`}
+                  ${soldOut ? 'Sold Out' : stockText(product)}
                 </p>
                 ${dropTimerHtml(product)}
-                ${
-                  soldOut
-                    ? `<button class="btn btn-ghost full btn-bring-back" data-bring-back="${product.id}">Bring it back</button>`
-                    : `<div class="card-ctas"><button class="btn btn-primary full" data-add="${product.id}">Add to Cart</button><button class="btn btn-secondary full" data-buy="${product.id}">Buy Now</button></div>`
-                }
+                ${cardCtasHtml(product, soldOut)}
               </div>
             `
       }
     </article>
   `;
+}
+
+function cardCtasHtml(product, soldOut) {
+  const preorder = getPreorder(product);
+  if (soldOut) {
+    return `<button class="btn btn-ghost full btn-bring-back" data-bring-back="${product.id}">Bring it back</button>`;
+  }
+  if (preorder && preorder.state === 'upcoming') {
+    return '<button class="btn btn-ghost full" disabled>Coming soon</button>';
+  }
+  if (preorder && preorder.state === 'closed') {
+    return '<button class="btn btn-ghost full" disabled>Preorder closed</button>';
+  }
+  const addLabel = preorder ? 'Preorder now' : 'Add to Cart';
+  return `<div class="card-ctas"><button class="btn btn-primary full" data-add="${product.id}">${addLabel}</button><button class="btn btn-secondary full" data-buy="${product.id}">Buy Now</button></div>`;
 }
 
 // Minimal presale card: only title and countdown (no buttons, price, or metadata)
@@ -750,8 +839,12 @@ function renderCollection() {
         const stock = modalInfo.querySelector('.product-stock');
         const soldOut = isSoldOut(product);
         if (stock) {
-          stock.textContent = soldOut ? 'Sold Out' : `Stock: ${product.stock}`;
+          stock.textContent = soldOut ? 'Sold Out' : stockText(product);
         }
+        const oldNote = modalInfo.querySelector('.preorder-note');
+        if (oldNote) oldNote.remove();
+        const noteHtml = preorderNoteHtml(product);
+        if (noteHtml && stock) stock.insertAdjacentHTML('beforebegin', noteHtml);
       }
 
       storyModal.removeAttribute('hidden');
@@ -779,8 +872,12 @@ function renderCollection() {
         addBtn.textContent = 'Sold Out';
         addBtn.classList.add('btn-ghost');
         addBtn.disabled = true;
+      } else if (getPreorder(product) && getPreorder(product).state !== 'open') {
+        addBtn.textContent = getPreorder(product).state === 'upcoming' ? 'Coming soon' : 'Preorder closed';
+        addBtn.classList.add('btn-ghost');
+        addBtn.disabled = true;
       } else {
-        addBtn.textContent = 'Add to Cart';
+        addBtn.textContent = getPreorder(product) ? 'Preorder now' : 'Add to Cart';
         addBtn.classList.add('btn-primary');
         addBtn.setAttribute('data-add', product.id);
         addBtn.disabled = false;
@@ -1203,6 +1300,7 @@ function renderCart() {
         <div>
           <h4>${item.name}</h4>
           <p>${currency.format(item.price)}</p>
+          ${getPreorder(item) && getPreorder(item).shipDate ? `<p class="cart-preorder">Preorder · ships by ${formatShipDate(getPreorder(item).shipDate)}</p>` : ''}
           <button class="remove" data-remove="${item.id}">Remove</button>
         </div>
         <div class="qty">
@@ -1333,11 +1431,12 @@ document.addEventListener('input', (event) => {
 
 // Initialize drops on load, then re-render sections so timers appear.
 async function initShopIntegration() {
-  await loadDrops();
+  await Promise.all([loadDrops(), loadPinStatus()]);
   try {
     renderHomeSections();
     renderShop();
     renderCollection();
+    renderCart();
   } catch (e) {
     // ignore if sections not present on current page
   }

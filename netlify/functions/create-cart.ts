@@ -1,9 +1,18 @@
 import type { Handler } from "@netlify/functions";
-import variantMap from "../../shopify_variants.json";
+import {
+  fetchPinStatuses,
+  formatShipDate,
+  storefrontConfigured,
+  storefrontRequest,
+  toVariantGid,
+  variants,
+} from "../lib/storefront";
 
 // Builds a Shopify cart from the site's cart and returns Shopify's hosted
 // checkout URL. Prices, stock limits, tax and shipping are all enforced by
 // Shopify at checkout, so the browser only sends product ids and quantities.
+// Preorder windows (custom.preorder_starts_at / preorder_ends_at on the
+// Shopify product) are enforced here, since Shopify itself doesn't know them.
 
 const MAX_QTY_PER_LINE = 20;
 const MAX_LINES = 50;
@@ -26,10 +35,6 @@ const CART_CREATE = `
 
 type CartItem = { id: string; qty: number };
 
-function toVariantGid(value: string) {
-  return value.startsWith("gid://") ? value : `gid://shopify/ProductVariant/${value}`;
-}
-
 function parseItems(body: string | null): CartItem[] | null {
   try {
     const parsed = JSON.parse(body || "{}");
@@ -49,11 +54,7 @@ function parseItems(body: string | null): CartItem[] | null {
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN;
-  const privateToken = process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN;
-  const publicToken = process.env.SHOPIFY_STOREFRONT_PUBLIC_TOKEN;
-  const apiVersion = process.env.SHOPIFY_API_VERSION || "2026-07";
-  if (!shopDomain || (!privateToken && !publicToken)) {
+  if (!storefrontConfigured()) {
     console.error("create-cart: SHOPIFY_SHOP_DOMAIN and a Storefront token are required");
     return json({ error: "Checkout is not configured yet." }, 503);
   }
@@ -61,54 +62,55 @@ export const handler: Handler = async (event) => {
   const items = parseItems(event.body);
   if (!items) return json({ error: "Invalid cart." }, 400);
 
-  const variants = variantMap as Record<string, string>;
   const missing = items.filter((item) => !variants[item.id]).map((item) => item.id);
   if (missing.length) {
     return json({ error: "Some items in your cart aren't available to buy online yet.", missing }, 422);
   }
 
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (privateToken) {
-    headers["Shopify-Storefront-Private-Token"] = privateToken;
-    const buyerIp = event.headers["x-nf-client-connection-ip"] || event.headers["x-forwarded-for"]?.split(",")[0]?.trim();
-    if (buyerIp) headers["Shopify-Storefront-Buyer-IP"] = buyerIp;
-  } else {
-    headers["X-Shopify-Storefront-Access-Token"] = publicToken as string;
-  }
+  const buyerIp =
+    event.headers["x-nf-client-connection-ip"] || event.headers["x-forwarded-for"]?.split(",")[0]?.trim();
 
   try {
-    const response = await fetch(`https://${shopDomain}/api/${apiVersion}/graphql.json`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        query: CART_CREATE,
-        variables: {
-          input: {
-            lines: items.map((item) => ({ merchandiseId: toVariantGid(variants[item.id]), quantity: item.qty })),
-          },
-        },
-      }),
+    const statuses = await fetchPinStatuses(items.map((item) => item.id), buyerIp);
+
+    const upcoming = items.filter((item) => statuses[item.id]?.preorder?.state === "upcoming").map((i) => i.id);
+    if (upcoming.length) {
+      return json({ error: "Preorders for some items in your cart haven't opened yet.", unavailable: upcoming }, 409);
+    }
+    const closed = items.filter((item) => statuses[item.id]?.preorder?.state === "closed").map((i) => i.id);
+    if (closed.length) {
+      return json({ error: "The preorder window has closed for some items in your cart.", unavailable: closed }, 409);
+    }
+
+    const lines = items.map((item) => {
+      const shipDate = statuses[item.id]?.preorder?.shipDate;
+      return {
+        merchandiseId: toVariantGid(variants[item.id]),
+        quantity: item.qty,
+        // Shows on the Shopify order and the confirmation email.
+        ...(shipDate ? { attributes: [{ key: "Preorder", value: `Ships by ${formatShipDate(shipDate)}` }] } : {}),
+      };
     });
 
-    const payload = await response.json().catch(() => null);
-    if (!response.ok || !payload || payload.errors?.length) {
-      console.error("create-cart: Storefront API error", response.status, JSON.stringify(payload?.errors ?? payload));
+    const result = await storefrontRequest(CART_CREATE, { input: { lines } }, buyerIp);
+    if (!result.ok) {
+      console.error("create-cart: Storefront API error", result.status, JSON.stringify(result.errors));
       return json({ error: "Couldn't start checkout. Please try again." }, 502);
     }
 
-    const result = payload.data?.cartCreate;
-    if (result?.userErrors?.length) {
-      console.error("create-cart: userErrors", JSON.stringify(result.userErrors));
-      return json({ error: result.userErrors[0].message || "Couldn't start checkout." }, 422);
+    const created = result.data?.cartCreate;
+    if (created?.userErrors?.length) {
+      console.error("create-cart: userErrors", JSON.stringify(created.userErrors));
+      return json({ error: created.userErrors[0].message || "Couldn't start checkout." }, 422);
     }
-    if (!result?.cart?.checkoutUrl) {
+    if (!created?.cart?.checkoutUrl) {
       return json({ error: "Couldn't start checkout. Please try again." }, 502);
     }
 
     // Shopify may trim quantities that exceed available stock; the warnings say so.
     return json({
-      checkoutUrl: result.cart.checkoutUrl,
-      warnings: (result.warnings ?? []).map((w: { message: string }) => w.message),
+      checkoutUrl: created.cart.checkoutUrl,
+      warnings: (created.warnings ?? []).map((w: { message: string }) => w.message),
     });
   } catch (error) {
     console.error("create-cart: request failed", error);
