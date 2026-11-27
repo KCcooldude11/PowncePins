@@ -2588,3 +2588,12 @@ body.content-page .panel {
   font-style: normal;
   font-display: swap;
 }
+.checkout-error {
+  color: #b42318;
+  font-weight: 600;
+  margin: 0.6rem 0 0;
+}
+
+.checkout-error:empty {
+  display: none;
+}

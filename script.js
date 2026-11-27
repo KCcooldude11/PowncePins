@@ -88,18 +88,57 @@ const HOMEPAGE_TIERS = [
   { price: 995, unit: '$4.98 per pin', quantity: '200 custom pins', cta: 'Request Project' }
 ];
 
-// Load Checkout Links from repo file (generated from Shopify Checkout Links)
-async function loadCheckoutLinks() {
+// Send the cart to Shopify: a Netlify function builds a Shopify cart from
+// product ids and quantities and returns Shopify's hosted checkout URL.
+let checkoutInFlight = false;
+
+function showCheckoutError(message) {
+  const footer = document.querySelector('#cartDrawer .cart-footer');
+  if (!footer) {
+    alert(message);
+    return;
+  }
+  let el = footer.querySelector('#checkoutError');
+  if (!el) {
+    el = document.createElement('p');
+    el.id = 'checkoutError';
+    el.className = 'checkout-error';
+    el.setAttribute('role', 'alert');
+    footer.appendChild(el);
+  }
+  el.textContent = message;
+}
+
+async function startCheckout(items) {
+  if (checkoutInFlight || !items.length) return;
+  checkoutInFlight = true;
+  const buttons = document.querySelectorAll('#checkoutBtn, [data-buy]');
+  buttons.forEach((btn) => { btn.disabled = true; });
+  const checkoutBtn = document.querySelector('#checkoutBtn');
+  const checkoutLabel = checkoutBtn ? checkoutBtn.textContent : '';
+  if (checkoutBtn) checkoutBtn.textContent = 'Starting checkout...';
+  showCheckoutError('');
+
   try {
-    const res = await fetch('/checkout_links.json');
-    if (res.ok) {
-      window.CHECKOUT_LINKS = await res.json();
-    } else {
-      window.CHECKOUT_LINKS = {};
+    const res = await fetch('/api/cart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: items.map((item) => ({ id: item.id, qty: item.qty })) })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.checkoutUrl) {
+      window.location.href = data.checkoutUrl;
+      return;
     }
-  } catch (e) {
-    window.CHECKOUT_LINKS = {};
-    console.warn('Could not load checkout links', e);
+    throw new Error(data.error || 'Could not start checkout. Please try again.');
+  } catch (err) {
+    console.error('Checkout error:', err);
+    setCartOpen(true);
+    showCheckoutError(err.message || 'Could not start checkout. Please try again.');
+  } finally {
+    checkoutInFlight = false;
+    buttons.forEach((btn) => { btn.disabled = false; });
+    if (checkoutBtn) checkoutBtn.textContent = checkoutLabel;
   }
 }
 
@@ -410,7 +449,6 @@ function getBackerForProduct(product) {
 function productCard(product, isComingSoon = false) {
   const soldOut = isSoldOut(product);
   const backer = getBackerForProduct(product);
-  const hasBuyLink = typeof window !== 'undefined' && window.CHECKOUT_LINKS && window.CHECKOUT_LINKS[product.id];
 
   // Add data-story-pin="true" for Rankless Story Pin (id: p000)
   const isRanklessStoryPin = product.id === 'p000' && product.category === 'Story Pins';
@@ -453,10 +491,7 @@ function productCard(product, isComingSoon = false) {
                 ${dropTimerHtml(product)}
                 ${
                   soldOut
-                    ? (hasBuyLink
-                        ? `<div class="card-ctas"><button class="btn btn-secondary full" data-buy="${product.id}">Buy Now</button></div>`
-                        : `<button class="btn btn-ghost full btn-bring-back" data-bring-back="${product.id}">Bring it back</button>`
-                      )
+                    ? `<button class="btn btn-ghost full btn-bring-back" data-bring-back="${product.id}">Bring it back</button>`
                     : `<div class="card-ctas"><button class="btn btn-primary full" data-add="${product.id}">Add to Cart</button><button class="btn btn-secondary full" data-buy="${product.id}">Buy Now</button></div>`
                 }
               </div>
@@ -1226,15 +1261,7 @@ debugPinNumberPositions(); // run on load too
 document.addEventListener('click', (event) => {
   const buyButton = event.target.closest('[data-buy]');
   if (buyButton) {
-    const productId = buyButton.dataset.buy;
-    const link = window.CHECKOUT_LINKS && window.CHECKOUT_LINKS[productId];
-    if (link) {
-      window.open(link, '_blank');
-    } else {
-      // fallback to cart if no checkout link configured
-      addToCart(productId);
-      setCartOpen(true);
-    }
+    startCheckout([{ id: buyButton.dataset.buy, qty: 1 }]);
     return;
   }
 
@@ -1275,20 +1302,8 @@ document.addEventListener('click', (event) => {
 
   const checkoutButton = event.target.closest('#checkoutBtn');
   if (checkoutButton) {
-    // Prefer Shopify Checkout Link when possible
-    const entries = getCartEntries();
-    if (entries.length === 1) {
-      const pid = entries[0].id;
-      const link = window.CHECKOUT_LINKS && window.CHECKOUT_LINKS[pid];
-      if (link) {
-        // Redirect to Shopify checkout for the single item
-        window.location.href = link;
-        return;
-      }
-    }
-
-    // For multi-item carts or when no checkout link exists, fallback to internal checkout page
-    window.location.href = 'checkout.html';
+    startCheckout(getCartEntries());
+    return;
   }
 
   const faqToggle = event.target.closest('[data-faq]');
@@ -1296,7 +1311,7 @@ document.addEventListener('click', (event) => {
     faqToggle.parentElement.classList.toggle('open');
   }
 
-  if (event.target.closest('#cartToggle')) {
+  if (event.target.closest('#cartToggle') || event.target.closest('[data-open-cart]')) {
     setCartOpen(true);
   }
 
@@ -1316,9 +1331,9 @@ document.addEventListener('input', (event) => {
   }
 });
 
-// Initialize checkout links and drops on load, then re-render sections so timers appear.
+// Initialize drops on load, then re-render sections so timers appear.
 async function initShopIntegration() {
-  await Promise.all([loadCheckoutLinks(), loadDrops()]);
+  await loadDrops();
   try {
     renderHomeSections();
     renderShop();
@@ -1348,147 +1363,6 @@ if (contactForm) {
   });
 }
 
-// Checkout form functionality
-const checkoutForm = document.querySelector('#checkoutForm');
-if (checkoutForm) {
-  const paymentMethodRadios = checkoutForm.querySelectorAll('input[name="paymentMethod"]');
-  const cardPaymentSection = document.querySelector('#cardPayment');
-  const paypalPaymentSection = document.querySelector('#paypalPayment');
-  const shippingMethodRadios = checkoutForm.querySelectorAll('input[name="shippingMethod"]');
-  const shippingCostEl = document.querySelector('#shippingCost');
-  const taxEl = document.querySelector('#tax');
-  const totalEl = document.querySelector('#total');
-  const subtotalEl = document.querySelector('#subtotal');
-
-  const shippingCosts = {
-    standard: 5.99,
-    express: 12.99,
-    overnight: 24.99
-  };
-
-  const subtotal = 25.98;
-
-  function updateTotal() {
-    const selectedShipping = checkoutForm.querySelector('input[name="shippingMethod"]:checked');
-    const shippingCost = shippingCosts[selectedShipping.value] || 5.99;
-    const tax = parseFloat(((subtotal + shippingCost) * 0.08).toFixed(2));
-    const total = parseFloat((subtotal + shippingCost + tax).toFixed(2));
-
-    shippingCostEl.textContent = '$' + shippingCost.toFixed(2);
-    taxEl.textContent = '$' + tax.toFixed(2);
-    totalEl.textContent = '$' + total.toFixed(2);
-  }
-
-  paymentMethodRadios.forEach((radio) => {
-    radio.addEventListener('change', (event) => {
-      if (event.target.value === 'card') {
-        cardPaymentSection.classList.add('active');
-        paypalPaymentSection.classList.remove('active');
-      } else {
-        cardPaymentSection.classList.remove('active');
-        paypalPaymentSection.classList.add('active');
-      }
-    });
-  });
-
-  shippingMethodRadios.forEach((radio) => {
-    radio.addEventListener('change', updateTotal);
-  });
-
-  checkoutForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    
-    // Get current user session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      alert('Please log in to place an order.');
-      window.location.href = 'login-signup.html';
-      return;
-    }
-    
-    // Prepare order data
-    const entries = getCartEntries();
-    if (entries.length === 0) {
-      alert('Your cart is empty.');
-      return;
-    }
-    
-    const items = entries.map((item) => ({
-      pin_id: item.id,
-      quantity: item.qty
-    }));
-    
-    const firstName = checkoutForm.querySelector('input[name="firstName"]')?.value || '';
-    const lastName = checkoutForm.querySelector('input[name="lastName"]')?.value || '';
-    const email = checkoutForm.querySelector('input[name="email"]')?.value || '';
-    const address = checkoutForm.querySelector('input[name="address"]')?.value || '';
-    const city = checkoutForm.querySelector('input[name="city"]')?.value || '';
-    const state = checkoutForm.querySelector('input[name="state"]')?.value || '';
-    const zip = checkoutForm.querySelector('input[name="zip"]')?.value || '';
-    
-    const shippingAddress = { firstName, lastName, email, address, city, state, zip };
-    
-    try {
-      // Call Supabase Edge Function to create order
-      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: {
-          items: items,
-          shippingAddress: shippingAddress
-        }
-      });
-      
-      if (error) {
-        alert('Error creating order: ' + (error.message || 'Unknown error'));
-        return;
-      }
-      
-      if (data && data.orderId) {
-        // Clear cart and show success
-        state.cart = {};
-        saveCart();
-        alert('Order placed successfully! Thank you for your purchase.');
-        checkoutForm.reset();
-        setTimeout(() => window.location.href = 'index.html', 1500);
-      } else if (data && data.message) {
-        state.cart = {};
-        saveCart();
-        alert(data.message);
-        checkoutForm.reset();
-      } else if (data && data.stripeUrl) {
-        // Redirect to Stripe (when payment integration is ready)
-        window.location.href = data.stripeUrl;
-      }
-    } catch (err) {
-      console.error('Checkout error:', err);
-      alert('Error processing order. Please try again.');
-    }
-  });
-
-  // Format card number input
-  const cardNumberInput = checkoutForm.querySelector('input[name="cardNumber"]');
-  if (cardNumberInput) {
-    cardNumberInput.addEventListener('input', (event) => {
-      let value = event.target.value.replace(/\s/g, '');
-      let formattedValue = value.replace(/(\d{4})/g, '$1 ').trim();
-      event.target.value = formattedValue;
-    });
-  }
-
-  // Format expiry date input
-  const expiryInput = checkoutForm.querySelector('input[name="cardExpiry"]');
-  if (expiryInput) {
-    expiryInput.addEventListener('input', (event) => {
-      let value = event.target.value.replace(/\D/g, '');
-      if (value.length >= 2) {
-        value = value.substring(0, 2) + '/' + value.substring(2, 4);
-      }
-      event.target.value = value;
-    });
-  }
-
-  // Initialize total calculation
-  updateTotal();
-}
 
 
 

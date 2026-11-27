@@ -10,6 +10,11 @@
   to = "/.netlify/functions/creator-summary"
   status = 200
 
+[[redirects]]
+  from = "/api/cart"
+  to = "/.netlify/functions/create-cart"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
