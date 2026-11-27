@@ -649,7 +649,7 @@ function renderHomeSections() {
   const newest = newestAll.slice(0, 4);
 
   if (featuredRoot) {
-    featuredRoot.innerHTML = featured.map(productCard).join('');
+    featuredRoot.innerHTML = featured.map((product) => productCard(product)).join('');
   }
 
   if (newestRoot) {
@@ -716,7 +716,7 @@ function renderShop() {
     .join('');
 
   const rows = getFilteredProducts();
-  gridRoot.innerHTML = rows.length ? rows.map(productCard).join('') : '<p class="empty">No products match your filters.</p>';
+  gridRoot.innerHTML = rows.length ? rows.map((product) => productCard(product)).join('') : '<p class="empty">No products match your filters.</p>';
 
   searchInput.value = state.search;
 }
