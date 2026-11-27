@@ -59,7 +59,7 @@ const PRODUCTS = [
     id: 'p004',
     name: 'Apple Enamel Pin',
     category: 'Character Pins',
-    price: 18,
+    price: 20,
     stock: 10,
     image: 'assets/pins/apple.png',
     featured: true,
